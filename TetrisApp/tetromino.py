@@ -18,9 +18,9 @@ User can redefine Tetromino color settings
 class Tetromino(object):
     colors = None
 
-    def __init__(self, defaultNumber=1):
+    def __init__(self, defaultNumber=0):
         self.tetrisStructs = self.updateData()
-        scheme = ColorSchemes().getSchemeDict(defaultNumber)
+        scheme = ColorSchemes(selection=defaultNumber).getSchemeDict()
         Tetromino.colors = scheme
         self.pieces = self.getPieces()
         # print('currentScheme\t', self.pieceColors)

@@ -1,12 +1,72 @@
-from PyQt6.QtCore import QPoint, QRect
-from PyQt6.QtGui import QPalette, QColor, QPolygon
+from PyQt6.QtCore import QPoint, QRect, QSizeF, QPointF, pyqtSignal
+from PyQt6.QtGui import QPalette, QColor, QPolygon, QRegion, QPaintEvent
 from PyQt6.QtWidgets import QHBoxLayout, QPushButton, QWidget
+
+# I use PySide6, but whatever library should work.
+from PyQt6.QtWidgets import *
+from PyQt6.QtGui import QPainter, QPainterPath, QBrush, QPen
+from PyQt6.QtCore import Qt, QRectF
+
+
+class BoardBkgd(QWidget):
+   # paint_event_bkgd = pyqtSignal(QPaintEvent)
+
+    def __init__(self, boardParent, width, height):
+        super(BoardBkgd, self).__init__()
+        self.board = boardParent
+        self.width = width
+        self.height = height
+        self.px = 5
+        self.radius = 20
+        self.outlineColor = "#333333"
+        self.drawBackground()
+
+    def drawBackground(self):
+        self.setAutoFillBackground(True)
+        self.setFixedSize(self.width, self.height)
+        path = QPainterPath()
+        size = QSizeF(self.width, self.height)
+        rect = QRectF(QPointF(0, 0), size)
+        path.addRoundedRect(rect, self.radius, self.radius)
+        mask = QRegion(path.toFillPolygon().toPolygon())
+        self.setMask(mask)
+        self.setObjectName("bkgd-box")
+        self.setStyleSheet('''
+                    QWidget#bkgd-box {
+                        border-radius: 20px;
+                        background: rgba(151, 217, 0, 0.15);
+                        border: 5px solid #333333;
+                    }''')
+        return self
+
+
+'''
+    def paintEvent(self, event):
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.Antialiasing)
+        path = QPainterPath()
+        # Set painter colors to given values.
+        pen = QPen(self.outlineColor, self.px)
+        painter.setPen(pen)
+        brush = QBrush(self.fillColor)
+        painter.setBrush(brush)
+        size = QSizeF(self.width, self.height)
+        rect = QRectF(QPointF(0, 0), size)
+        rect.adjust(self.px/2, self.px/2, -self.px/2, -self.px/2)
+
+        path.addRoundedRect(rect, self.radius, self.radius)
+        painter.setClipPath(path)
+
+        # Fill shape, draw the border and center the text.
+        painter.fillPath(path, painter.brush())
+        painter.strokePath(path, painter.pen())
+        painter.drawText(rect, Qt.AlignCenter, self.text())
+'''
 
 
 class BKGDCell(QWidget):
 
     def __init__(self, color, cellSize):
-
         super().__init__()
         self.cs = cellSize
         self.setFixedWidth(self.cs)
@@ -21,7 +81,6 @@ class BKGDCell(QWidget):
 class PieceCell(QWidget):
 
     def __init__(self, color, cellSize):
-
         super().__init__()
         self.cs = cellSize
         self.setFixedWidth(self.cs)

@@ -4,78 +4,36 @@ Colors Class
    • • • each a list of seven hues
 --> takes new schemes and checks validity
 """
+from defaults import defaults
 
 
-class ColorSchemes(object):
-    defaults = dict()
-    defaults[1] = (
-        '#EF233C',  # imperial red
-        '#F8A312',  # orange web
-        '#FEE440',  # minion yellow
-        '#40C9A2',  # caribbean green
-        '#36B6D3',  # pacific blue
-        '#2667FF',  # ultramarine blue
-        '#3423A6'  # blue pantone
-    )
-    defaults[2] = (
-        '#F45866',  # fiery rose
-        '#F79D84',  # vivid tangerine
-        '#F8C162',  # maximum yellow red
-        '#D7F171',  # mindaro
-        '#A9FOD1',  # magic mint
-        '#8AC4FF',  # maya blue
-        '#ADBDFF'  # maximum blue purple
-    )
-    defaults[3] = (
-        '#D72483',  # barbie pink
-        '#FF595E',  # red salsa
-        '#FF9E1F',  # orange peel
-        '#FFCA3A',  # sun glow
-        '#E0FF4F',  # arctic lime
-        '#59CD90',  # emerald
-        '#3185FC'  # azure
-    )
-    defaults[4] = (
-        '#D81159',  # ruby
-        '#FC440F',  # coquelicot
-        '#FF9F1C',  # orange peel
-        '#C6F91F',  # electric lime
-        '#2EC4B6',  # tiffany blue
-        '#008BF8',  # bleu de france
-        '#623CEA'  # majorelle Blue
-    )
-    defaults[5] = (
-        '#CC0085',  # medium violet red
-        '#EA638C',  # blush
-        '#F79D84',  # vivid tangerine
-        '#EFCA08',  # yellow munsell
-        '#6CC551',  # mantis
-        '#41B1C8',  # pacific blue
-        '#5E2BFF'  # han purple
-    )
+class ColorSchemes:
+    defaults = defaults
 
-    def __init__(self, n=7, newScheme=1, title="NEW SCHEME"):
-        self.currentScheme = ColorSchemes.defaults[1]
-        self.n = n  # number of pieces
-        if self.isScheme(newScheme):
+    def __init__(self, selection=0, newScheme=None, title="NEW SCHEME"):
+        self.selection = selection
+        if newScheme and self.isScheme(newScheme):
             self.addScheme(title, newScheme)
+            self.selection = title
         else:
-            if newScheme is None:
-                # get random scheme
-                self.currentScheme = ColorSchemes.defaults[1]
-        # self.length = len(self.scheme)
+            assert(not newScheme)
+            self.currentScheme = defaults[self.selection]
 
-    def isScheme(self, scheme):
+    def getScheme(self):
+        return self.getSchemeDict(self.selection)
+
+    @staticmethod
+    def isScheme(scheme):
         # confirm every hue = hex str
         if isinstance(scheme, list) or \
                 isinstance(scheme, tuple) \
-                and len(scheme) == self.n:
+                and len(scheme) == 7:
             return True
 
     @staticmethod
     def addScheme(schemeName, schemeList):
         if schemeList:
-            ColorSchemes.defaults[schemeName] = schemeList
+            defaults[schemeName] = schemeList
 
     @staticmethod
     def hexToRGB(hueHex):
@@ -89,7 +47,7 @@ class ColorSchemes(object):
         r = RGBList[0]
         g = RGBList[1]
         b = RGBList[2]
-        toJoin = ['#', '{:X}{:X}{:X}'.format(r, g, b)]
+        toJoin = ['#', '{:02x}{:02x}{:02x}'.format(r, g, b)]
         return ''.join(toJoin)
 
     def getTint(self, hueHex, stepPercent=10):
@@ -113,15 +71,17 @@ class ColorSchemes(object):
 
     '''
     --> makes pieces instances of each piece
-    
     '''
-    def getSchemeDict(self, currScheme):
+
+    def getSchemeDict(self):
         pieces = ['I', 'J', 'L', 'O', 'S', 'T', 'Z']
         schemeDict = dict()
         keys = ('hue', 'tint', 'shade')
         for i in range(len(pieces)):
             piece = pieces[i]
-            hue = ColorSchemes.defaults[currScheme][i]
+            print(self.selection)
+            print(defaults[self.selection])
+            hue = defaults[self.selection][i]
             print('hue', hue)
             tint = self.getTint(hue)
             print('tint', tint)
@@ -132,16 +92,6 @@ class ColorSchemes(object):
             schemeDict[piece] = colors
         return schemeDict
 
-    '''
-    colors = dict()
-    for i in range(len(dir(ColorSchemes))):
-        currScheme = dir(ColorSchemes)[i]
-        if not currScheme.startswith('__') and not \
-                callable(getattr(ColorSchemes, currScheme)):
-            pass
-    '''
 
-
-schemes = ColorSchemes()
-schemes.getSchemeDict(1)
-
+# schemes = ColorSchemes()
+# schemes.getSchemeDict(1)

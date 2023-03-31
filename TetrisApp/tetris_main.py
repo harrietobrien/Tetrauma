@@ -7,8 +7,9 @@ from PyQt6.QtCore import *
 from PyQt6.QtWidgets import *
 from PyQt6.QtGui import *
 from color_schemes import ColorSchemes
+from defaults import defaults
 from tetromino import Tetromino
-from util import BKGDCell, BoardBkgd
+from util import BKGDCell
 
 
 class CtrlPanel(QGroupBox):
@@ -51,25 +52,15 @@ class CtrlPanel(QGroupBox):
         if labelGIF is not None:
             labelGIF.setMovie(GIF)
             GIF.start()
-
+        shadow = QGraphicsDropShadowEffect()
+        shadow.setBlurRadius(15)
+        labelGIF.setGraphicsEffect(shadow)
         self.vbox.addWidget(labelGIF, alignment=self.hcenter | self.top)
-        '''
-        description = QLabel(self)
-        descr = "Tetris has been found to be beneficial for people with PTSD (post-traumatic stress disorder)" \
-                " as it reduces the occurrence of flashbacks or intrusive memories. The memory of a traumatic " \
-                "event event can become deep-rooted in the subconscious causing persistent intrusions, triggering" \
-                " severe distress and anxiety. Playing Tetris can help disrupt this process by occupying the " \
-                "brain's visual-spatial processing resources. The high level of mental concentration required " \
-                "for the fast-paced, visual-spatial gameplay can override the brain's tendency to replay " \
-                "traumatic memories."
-        description.setWordWrap(True)
-        description.setText(descr)
-        '''
         self.buttonBox()
         statsBox = QHBoxLayout()
         statsBox.setAlignment(self.hcenter)
-        self.scoreWidget = self.addRoundedWidget(250, 100, 'SCORE')
-        self.rowsWidget = self.addRoundedWidget(250, 100, 'ROWS CLEARED')
+        self.scoreWidget = self.addRoundedWidget(250, 120, 'SCORE')
+        self.rowsWidget = self.addRoundedWidget(250, 120, 'ROWS CLEARED')
         statsBox.addWidget(self.scoreWidget)
         statsBox.addWidget(self.rowsWidget)
         previewBox = QHBoxLayout()
@@ -80,7 +71,6 @@ class CtrlPanel(QGroupBox):
         previewBox.addWidget(self.holdWidget)
         self.vbox.addLayout(statsBox)
         self.vbox.addLayout(previewBox)
-        # self.vbox.addWidget(description, alignment=self.hcenter | self.top)
         self.vbox.addStretch()
         self.setLayout(self.vbox)
         self.update()
@@ -90,11 +80,18 @@ class CtrlPanel(QGroupBox):
 
     def buttonBox(self):
         hbox = QHBoxLayout()
+        hbox.setAlignment(self.hcenter)
         startButton = QPushButton("START GAME", self)
         startButton.setFont(self.font)
+        startButton.setObjectName("button")
+        startButton.setStyleSheet(open('styles.css').read())
+        startButton.setFixedSize(250, 60)
         hbox.addWidget(startButton)
         pauseButton = QPushButton("PAUSE GAME", self)
         pauseButton.setFont(self.font)
+        pauseButton.setObjectName("button")
+        pauseButton.setStyleSheet(open('styles.css').read())
+        pauseButton.setFixedSize(250, 60)
         hbox.addWidget(pauseButton)
         self.vbox.addLayout(hbox)
 
@@ -108,16 +105,15 @@ class CtrlPanel(QGroupBox):
         mask = QRegion(path.toFillPolygon().toPolygon())
         box.setMask(mask)
         box.setObjectName("outer-box")
-        box.setStyleSheet('''
-                QWidget#outer-box {
-                    border-radius: 20px;
-                    background: rgba(151, 217, 0, 0.23);
-                    border: 5px solid #333333;                   
-                }
-            ''')
+        box.setStyleSheet(open('styles.css').read())
         vbox = QVBoxLayout()
         text = QLabel(label, box, alignment=self.hcenter | self.top)
+        shadow = QGraphicsDropShadowEffect()
+        shadow.setBlurRadius(25)
+        text.setGraphicsEffect(shadow)
         text.setFont(self.font2)
+        text.setObjectName("text")
+        text.setStyleSheet(open('styles.css').read())
         if label == 'SCORE':
             stats = QLabel(str(self.score), box)
             self.scoreLabel = stats
@@ -146,7 +142,6 @@ class RunTetris(QMainWindow):
 
     def __init__(self, rows=15, cols=10, margin=25, cellSize=50):
         super(RunTetris, self).__init__()
-        # PyQT GUI set-up
         # board configuration / dimensions
         self.timerDelay = None
         self.board = None
@@ -170,7 +165,7 @@ class RunTetris(QMainWindow):
         layout.setLayout(hbox)
         self.setCentralWidget(layout)
         self.key_pressed.connect(self.board.onKeyPressEvent)
-        blueGreen = "#325FD3C8"
+        blueGreen = QColor(9, 183, 152)
         self.setAutoFillBackground(True)
         palette = self.palette()
         palette.setColor(QPalette.ColorRole.Window, QColor(blueGreen))
@@ -181,11 +176,11 @@ class RunTetris(QMainWindow):
 
     def currentScore(self, score):
         self.scoreSignal.emit(score)
-        #print("Score: ", score)
+        # print("Score: ", score)
 
     def currentRowsRmv(self, rows):
         self.rowSignal.emit(rows)
-        #print("Rows: ", rows)
+        # print("Rows: ", rows)
 
     def keyPressEvent(self, event: QKeyEvent) -> None:
         self.key_pressed.emit(event)
@@ -212,7 +207,7 @@ class Board(QGroupBox):
     scoreSignal = pyqtSignal(int)
     rowSignal = pyqtSignal(int)
     TRANSPARENT = "#00FFFFFF"
-    SCHEMES = ColorSchemes().defaults
+    SCHEMES = ColorSchemes()
 
     def __init__(self, runTetrisParent) -> None:
         super(Board, self).__init__(runTetrisParent)
@@ -225,7 +220,6 @@ class Board(QGroupBox):
         self.margin = self.parent.margin
         inst = Tetromino(defaultNumber=1)
         self.scheme = Tetromino.colors
-        print(self.scheme)
         self.fallingPieceStrux = inst.getStructs()
         self.n = len(self.fallingPieceStrux)
         # CURRENT FALLING PIECE
@@ -254,14 +248,6 @@ class Board(QGroupBox):
         self.bgColor = "#00FFFFFF"
         self.currentBoard = self.buildBoard(color=self.bgColor)
         self.permanentBoard = self.buildBoard(color=self.bgColor)
-        self.boardVBox = QVBoxLayout()
-        # self.bkgd = BoardBkgd(self, self.width, self.height)
-        # print(self.bkgd)
-        self.drawBackground()
-        self.boardVBox.setAlignment(self, self.hcenter | self.vcenter)
-        # self.boardVBox.setContentsMargins(50, 50, 50, 50)
-        self.boardVBox.addWidget(self.bkgd, alignment=self.hcenter | self.vcenter)
-        self.setLayout(self.boardVBox)
         self.startGame()
         self.show()
 
@@ -277,7 +263,6 @@ class Board(QGroupBox):
         self.started = True
         self.numRowsRemoved = 0
         # generate/select first falling piece
-        # self.drawBackground()
         self.newFallingPiece()
         self.timer.start(self.timerDelay, self)
 
@@ -320,9 +305,11 @@ class Board(QGroupBox):
         super().paintEvent(event)
         painter = QPainter(self)
         if not self.gameOver:
+            self.drawBackground(painter)
             self.drawBoard(painter)
             self.drawFallingPiece(painter)
         else:
+            self.drawBackground(painter)
             self.gameOverMessage(painter)
 
     def getCellBounds(self, row, col):
@@ -332,26 +319,17 @@ class Board(QGroupBox):
         y1 = self.margin + (row + 1) * self.cellSize
         return x0, x1, y0, y1
 
-    def drawBackground(self):
-        self.bkgd = QWidget(self)
-        self.bkgd.setAutoFillBackground(True)
-        self.bkgd.setFixedSize(self.width, self.height)
+    def drawBackground(self, painter):
         path = QPainterPath()
-        radius = 20.0
         size = QSizeF(self.width, self.height)
-        rect = QRectF(QPointF(0, 0), size)
-        path.addRoundedRect(rect, radius, radius)
-        mask = QRegion(path.toFillPolygon().toPolygon())
-        self.bkgd.setMask(mask)
-        self.bkgd.setObjectName("bkgd-box")
-        self.bkgd.setStyleSheet('''
-                        QWidget#bkgd-box {
-                            border-radius: 20px;
-                            background: rgba(151, 217, 0, 0.15);
-                            border: 5px solid #333333;
-                        }''')
-        self.boardVBox.addWidget(self.bkgd, alignment=self.hcenter | self.vcenter)
-        self.setLayout(self.boardVBox)
+        rect = QRectF(QPointF(50, 50), size)
+        path.addRoundedRect(rect, 20, 20)
+        color = QColor(151, 217, 0)
+        color.setAlpha(59)
+        pen = QPen(QColor("#333333"), 5)
+        painter.setPen(pen)
+        painter.fillPath(path, color)
+        painter.drawPath(path)
 
     def drawCell(self, painter, row, col, color):
         (x0, x1, y0, y1) = self.getCellBounds(row, col)
@@ -389,9 +367,8 @@ class Board(QGroupBox):
         painter.fillPath(path, brush)
 
     def drawPiecePart(self, painter, row, col, color):
-        # PART 1 - 9 x 9 - 2 triangles (polygons)
         hue = color
-        cs = ColorSchemes()
+        cs = Board.SCHEMES
         tint = cs.getTint(hue, stepPercent=20)
         shade = cs.getShade(hue)
         (x0, x1, y0, y1) = self.getCellBounds(row, col)
@@ -472,7 +449,6 @@ class Board(QGroupBox):
 
     def rotateFallingPiece(self):
         # Rotate falling piece 90 degrees counterclockwise
-        #oldPiece = self.currFallingPieceObj
         oldPiece = self.currFallingPieceBlist
         oldRowPosition, oldColPosition = self.currFallingPieceRow, self.currFallingPieceCol
         oldNumRows, oldNumCols = len(self.currFallingPieceBlist), len(self.currFallingPieceBlist[0])
@@ -488,7 +464,6 @@ class Board(QGroupBox):
             for col in range(oldNumCols - 1, -1, -1):
                 # Move each value to its new location in the newPiece
                 newPiece[oldNumCols - col - 1][row] = self.currFallingPieceBlist[row][col]
-        print('newPiece', newPiece)
         # Set fallingPiece/other variables equal to new values
         self.currFallingPieceBlist = newPiece
         newNumRows, newNumCols = len(newPiece), len(newPiece[0])
