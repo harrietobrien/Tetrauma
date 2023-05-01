@@ -1,6 +1,8 @@
-from PyQt6.QtCore import Qt, QRectF
-from PyQt6.QtGui import QFont, QMovie, QPainterPath, QRegion
-from PyQt6.QtWidgets import QGroupBox, QVBoxLayout, QLabel, QGraphicsDropShadowEffect, QHBoxLayout, QPushButton, QWidget
+from PyQt6.QtCore import Qt, QRectF, QPointF
+from PyQt6.QtGui import QFont, QMovie, QPainterPath, QRegion, QPainter, QColor
+from PyQt6.QtWidgets import QGroupBox, QVBoxLayout, QLabel, \
+    QGraphicsDropShadowEffect, QHBoxLayout, QPushButton, QWidget
+from util import RoundedWidget
 
 
 class CtrlPanel(QGroupBox):
@@ -9,6 +11,7 @@ class CtrlPanel(QGroupBox):
         self.rows, self.score = 0, 0
         self.runParent = runTetrisParent
         self.runParent.userSignal[str].connect(self.getUser)
+        self.runParent.board.nextSignal[object].connect(self.getNext)
         self.runParent.board.scoreSignal[int].connect(self.getScore)
         self.runParent.board.scoreSignal[int].connect(self.getRowsCleared)
         self.width, self.height = self.runParent.width, self.runParent.height
@@ -21,6 +24,9 @@ class CtrlPanel(QGroupBox):
         self.userLabel = None
         self.scoreLabel = None
         self.rowsLabel = None
+
+        self.nextPieceObject = None
+
         # alignments
         self.hcenter = Qt.AlignmentFlag.AlignHCenter
         self.vcenter = Qt.AlignmentFlag.AlignVCenter
@@ -33,6 +39,9 @@ class CtrlPanel(QGroupBox):
         if self.userLabel:
             self.userLabel.setText("Harriet")
         self.update()
+
+    def getNext(self, nextPiece):
+        self.nextPieceObject = nextPiece
 
     def getScore(self, score):
         if self.scoreLabel:
@@ -57,23 +66,41 @@ class CtrlPanel(QGroupBox):
         self.buttonBox()
         statsBox = QHBoxLayout()
         statsBox.setAlignment(self.hcenter)
-        self.scoreWidget = self.addRoundedWidget(250, 120, 'SCORE')
-        self.rowsWidget = self.addRoundedWidget(250, 120, 'ROWS CLEARED')
+        self.scoreWidget = self.addRoundedWidget(260, 120, 'SCORE')
+        self.rowsWidget = self.addRoundedWidget(260, 120, 'ROWS CLEARED')
         statsBox.addWidget(self.scoreWidget)
         statsBox.addWidget(self.rowsWidget)
-        previewBox = QHBoxLayout()
-        previewBox.setAlignment(self.hcenter)
-        self.nextWidget = self.addRoundedWidget(250, 250, 'NEXT PIECE')
-        self.holdWidget = self.addRoundedWidget(250, 250, 'HOLD QUEUE')
-        previewBox.addWidget(self.nextWidget)
-        previewBox.addWidget(self.holdWidget)
         self.vbox.addLayout(statsBox)
-        self.vbox.addLayout(previewBox)
         self.vbox.addStretch()
         self.setLayout(self.vbox)
         self.update()
 
-    def description(self):
+    def paintEvent(self, event):
+        super().paintEvent(event)
+        painter = QPainter(self)
+        painter.setPen(QColor("#FFFFFF"))
+        painter.setFont(self.font)
+        self.drawPreviewBox(painter)
+
+    def drawPreviewBox(self, painter):
+        self.runParent.board.drawBackground(painter, width=520,
+                                            height=250, start=QPointF(65, 410))
+        painter.drawText(100, 450, "NEXT PIECE")
+        self.drawNextPiece(painter)
+
+    def drawNextPiece(self, painter):
+        if self.nextPieceObject:
+            nextPiece = self.nextPieceObject
+            nextColors = self.runParent.board.getCurrentPieceColors(nextPiece)
+            nextBlist = nextPiece.getPiece()
+            for i in range(len(nextBlist)):
+                for j in range(len(nextBlist[0])):
+                    if nextBlist[i][j]:
+                        hue = nextColors['hue']
+                        self.runParent.board.drawCell(painter, i, j, hue, next=True)
+                        self.runParent.board.drawPiecePart(painter, i, j, hue, next=True)
+
+    def drawHeldPiece(self):
         pass
 
     def buttonBox(self):

@@ -9,6 +9,8 @@ from util import BKGDCell
 
 
 class Board(QGroupBox):
+    nextSignal = pyqtSignal(object)
+    heldSignal = pyqtSignal(object)
     scoreSignal = pyqtSignal(int)
     rowSignal = pyqtSignal(int)
     SCHEMES = ColorSchemes()
@@ -26,7 +28,9 @@ class Board(QGroupBox):
         self.scheme = Tetromino.colors
         self.fallingPieceStrux = inst.getStructs()
         self.n = len(self.fallingPieceStrux)
+        self.bgColor = "#00FFFFFF"
         # CURRENT FALLING PIECE
+        self.nextFallingPieceObj = None
         self.currFallingPieceObj = None
         self.currFallingPieceBlist = None
         self.currFallingPieceColors = None
@@ -47,9 +51,9 @@ class Board(QGroupBox):
         self.grid = None
         self.hcenter = Qt.AlignmentFlag.AlignHCenter
         self.vcenter = Qt.AlignmentFlag.AlignVCenter
-        self.bgColor = "#00FFFFFF"
         self.currentBoard = self.buildBoard(color=self.bgColor)
         self.permanentBoard = self.buildBoard(color=self.bgColor)
+
         self.startGame()
         self.show()
 
@@ -88,7 +92,7 @@ class Board(QGroupBox):
         self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
         self.setLayout(self.grid)
 
-    # creates self.currentBoard; call on restart
+    # creates self.currentBoard
     def buildBoard(self, color=None) -> list:
         rs, cs = self.rows, self.cols
         return [[color] * cs for _ in range(rs)]
@@ -121,10 +125,14 @@ class Board(QGroupBox):
         y1 = self.margin + (row + 1) * self.cellSize
         return x0, x1, y0, y1
 
-    def drawBackground(self, painter):
+    def drawBackground(self, painter, width=None, height=None, start=None):
+        if not width and not height:
+            width = self.width
+            height = self.height
+            start = QPointF(50, 50)
         path = QPainterPath()
-        size = QSizeF(self.width, self.height)
-        rect = QRectF(QPointF(50, 50), size)
+        size = QSizeF(width, height)
+        rect = QRectF(start, size)
         path.addRoundedRect(rect, 20, 20)
         color = QColor(151, 217, 0)
         color.setAlpha(59)
@@ -133,10 +141,14 @@ class Board(QGroupBox):
         painter.fillPath(path, color)
         painter.drawPath(path)
 
-    def drawCell(self, painter, row, col, color):
+    def drawCell(self, painter, row, col, color, next=False):
+        if next:
+            x, y = 125, 460
+        else:
+            x, y = 50, 50
         (x0, x1, y0, y1) = self.getCellBounds(row, col)
         cellColor = QColor(color)
-        topLeft = QPoint(x0 + 50, y0 + 50)
+        topLeft = QPoint(x0 + x, y0 + y)
         # bottomRight = QPoint(x1, y1)
         cellSize = QSize(self.cellSize, self.cellSize)
         cell = QRect(topLeft, cellSize)
@@ -168,18 +180,22 @@ class Board(QGroupBox):
         painter.drawPolygon(triangle)
         painter.fillPath(path, brush)
 
-    def drawPiecePart(self, painter, row, col, color):
+    def drawPiecePart(self, painter, row, col, color, next=False):
+        if next:
+            x, y = 125, 460
+        else:
+            x, y = 50, 50
         hue = color
         cs = Board.SCHEMES
-        tint = cs.getTint(hue, stepPercent=20)
-        shade = cs.getShade(hue)
+        tint = cs.getTint(hue, stepPercent=15)
+        shade = cs.getShade(hue, stepPercent=15)
         (x0, x1, y0, y1) = self.getCellBounds(row, col)
-        tlCell = QPointF(x0 + 50, y0 + 50)
-        trCell = QPointF(x0 + 50 + self.cellSize, y0 + 50)
-        brCell = QPointF(x1, y1)
-        blCell = QPointF(x1, y1 + self.cellSize)
-        self.drawTriangle(painter, tlCell, trCell, brCell, blCell, tint=tint)
+        tlCell = QPointF(x0 + x, y0 + y)
+        trCell = QPointF(x0 + x + self.cellSize, y0 + y)
+        brCell = QPointF(x1 + x - 50, y1 + y)
+        blCell = QPointF(x1 + x, y1 + y + self.cellSize - 50)
         self.drawTriangle(painter, tlCell, trCell, brCell, blCell, shade=shade)
+        self.drawTriangle(painter, tlCell, trCell, brCell, blCell, tint=tint)
 
     def drawFallingPiece(self, painter):
         if self.currFallingPieceBlist:
@@ -209,7 +225,14 @@ class Board(QGroupBox):
     def newFallingPiece(self):
         randomIndex = random.randint(0, self.n - 1)
         # Set values to randomly indexed elements
-        self.currFallingPieceObj = self.fallingPieceStrux[randomIndex]
+        if not self.nextFallingPieceObj:
+            self.nextFallingPieceObj = self.fallingPieceStrux[randomIndex]
+            self.currFallingPieceObj = self.fallingPieceStrux[randomIndex]
+        else:
+            self.currFallingPieceObj = self.nextFallingPieceObj
+            self.nextFallingPieceObj = self.fallingPieceStrux[randomIndex]
+            self.nextSignal.emit(self.nextFallingPieceObj)
+
         self.currFallingPieceBlist = self.currFallingPieceObj.getPiece()
         # Get current piece type
         self.currFallingPieceColors = self.getCurrentPieceColors(self.currFallingPieceObj)
@@ -324,7 +347,7 @@ class Board(QGroupBox):
         offset = 30
         centerPt = QPoint(mw, mh + offset)
         gameOverTxt = "GAME OVER"
-        painter.drawText(centerPt, gameOverTxt, )
+        painter.drawText(centerPt, gameOverTxt)
         scoreTxt = "FINAL SCORE: " + str(self.score)
         scorePt = QPoint(mw, mh + 2 * offset)
         painter.drawText(scorePt, scoreTxt)
