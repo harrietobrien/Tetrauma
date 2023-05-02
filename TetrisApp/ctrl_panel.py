@@ -13,7 +13,8 @@ class CtrlPanel(QGroupBox):
         self.runParent.userSignal[str].connect(self.getUser)
         self.runParent.board.gameStatusSignal[object].connect(self.gameStatus)
         self.runParent.board.nextSignal[object].connect(self.getNext)
-        self.runParent.board.heldSignal[object].connect(self.getHold)
+        self.runParent.board.getHoldSignal[object].connect(self.getHold)
+        self.runParent.board.placeHoldSignal[bool].connect(self.placeHold)
         self.runParent.board.scoreSignal[int].connect(self.getScore)
         self.runParent.board.scoreSignal[int].connect(self.getRowsCleared)
         self.width, self.height = self.runParent.width, self.runParent.height
@@ -29,11 +30,12 @@ class CtrlPanel(QGroupBox):
         self.rowsLabel = None
 
         self.pausedLabel = None
+        self.gameOver = False
 
         self.nextPieceObject = None
         self.heldPieceObject = None
+        self.placeHoldPiece = None
 
-        # alignments
         self.hcenter = Qt.AlignmentFlag.AlignHCenter
         self.vcenter = Qt.AlignmentFlag.AlignVCenter
         self.top = Qt.AlignmentFlag.AlignTop
@@ -47,6 +49,8 @@ class CtrlPanel(QGroupBox):
                 self.pausedLabel.setText("PAUSED")
             else:
                 self.pausedLabel.setText("PLAYING")
+        if gameStatus['over']:
+            self.gameOver = True
 
     def getUser(self):
         if self.userLabel:
@@ -58,6 +62,11 @@ class CtrlPanel(QGroupBox):
 
     def getHold(self, heldPiece):
         self.heldPieceObject = heldPiece
+        # draw piece outline
+        self.update()
+
+    def placeHold(self, place: bool):
+        self.placeHoldPiece = place
 
     def getScore(self, score):
         if self.scoreLabel:
@@ -97,13 +106,15 @@ class CtrlPanel(QGroupBox):
         painter.setPen(QColor("#FFFFFF"))
         painter.setFont(self.font)
         self.drawPreviewBox(painter)
-        self.drawHeldPiece(painter)
 
     def drawPreviewBox(self, painter):
-        self.runParent.board.drawBackground(painter, width=520,
-                                            height=250, start=QPointF(65, 410))
-        painter.drawText(100, 450, "NEXT PIECE")
-        self.drawNextPiece(painter)
+        origin = QPointF(45, 410)
+        self.runParent.board.drawBackground(painter, width=560, height=250, start=origin)
+        painter.drawText(120, 450, "NEXT PIECE")
+        painter.drawText(380, 450, "HOLD QUEUE")
+        if not self.gameOver:
+            self.drawNextPiece(painter)
+            self.drawHeldPiece(painter)
 
     def drawNextPiece(self, painter):
         if self.nextPieceObject:
@@ -114,8 +125,8 @@ class CtrlPanel(QGroupBox):
                 for j in range(len(nextBlist[0])):
                     if nextBlist[i][j]:
                         hue = nextColors['hue']
-                        self.runParent.board.drawCell(painter, i, j, hue, next=True)
-                        self.runParent.board.drawPiecePart(painter, i, j, hue, next=True)
+                        self.runParent.board.drawCell(painter, i, j, hue, piece="next")
+                        self.runParent.board.drawPiecePart(painter, i, j, hue, piece="next")
 
     def drawHeldPiece(self, painter):
         if self.heldPieceObject:
@@ -125,9 +136,14 @@ class CtrlPanel(QGroupBox):
             for i in range(len(heldBlist)):
                 for j in range(len(heldBlist[0])):
                     if heldBlist[i][j]:
-                        hue = heldColors['hue']
-                        self.runParent.board.drawCell(painter, i, j, hue, next=False, held=True)
-                        self.runParent.board.drawPiecePart(painter, i, j, hue, next=False, held=True)
+                        if self.placeHoldPiece:
+                            hue = heldColors['hue']
+                            self.runParent.board.drawCell(painter, i, j, hue, piece="hold")
+                            self.runParent.board.drawPiecePart(painter, i, j, hue, piece="hold")
+                        else:
+                            white = QColor("#FFFFFF")
+                            white.setAlpha(30)
+                            self.runParent.board.drawCell(painter, i, j, white, piece="outline")
 
     def buttonBox(self):
         hbox = QHBoxLayout()

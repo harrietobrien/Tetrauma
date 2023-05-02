@@ -11,7 +11,8 @@ from util import BKGDCell
 class Board(QGroupBox):
     gameStatusSignal = pyqtSignal(object)
     nextSignal = pyqtSignal(object)
-    heldSignal = pyqtSignal(object)
+    getHoldSignal = pyqtSignal(object)  # draw outline
+    placeHoldSignal = pyqtSignal(bool)  # draw piece
     scoreSignal = pyqtSignal(int)
     rowSignal = pyqtSignal(int)
     SCHEMES = ColorSchemes()
@@ -29,7 +30,8 @@ class Board(QGroupBox):
         inst = Tetromino(defaultNumber=1)
         self.scheme = Tetromino.colors
         self.fallingPieceStrux = inst.getStructs()
-        self.dummyHoldPieceObj = self.fallingPieceStrux[6]
+        self.currHoldPieceObj = None
+        self.placeHold = False
         self.n = len(self.fallingPieceStrux)
         self.bgColor = "#00FFFFFF"
         # CURRENT FALLING PIECE
@@ -148,12 +150,13 @@ class Board(QGroupBox):
         painter.fillPath(path, color)
         painter.drawPath(path)
 
-    def drawCell(self, painter, row, col, color, next=False, held=False):
-        if next:
-            x, y = 100, 460
-        elif held:
-            x, y = 350, 460
+    def drawCell(self, painter, row, col, color, piece=None):
+        if piece == "next":
+            x, y = 80, 460
+        elif piece == "hold" or piece == "outline":
+            x, y = 340, 460
         else:
+            assert not piece
             x, y = 50, 50
         (x0, x1, y0, y1) = self.getCellBounds(row, col)
         cellColor = QColor(color)
@@ -189,12 +192,13 @@ class Board(QGroupBox):
         painter.drawPolygon(triangle)
         painter.fillPath(path, brush)
 
-    def drawPiecePart(self, painter, row, col, color, next=False, held=False):
-        if next:
-            x, y = 100, 460
-        elif held:
-            x, y = 350, 460
+    def drawPiecePart(self, painter, row, col, color, piece=None):
+        if piece == "next":
+            x, y = 80, 460
+        elif piece == "hold":
+            x, y = 340, 460
         else:
+            assert not piece
             x, y = 50, 50
         hue = color
         cs = Board.SCHEMES
@@ -234,7 +238,6 @@ class Board(QGroupBox):
         return "NotFound"
 
     def newFallingPiece(self):
-        self.heldSignal.emit(self.dummyHoldPieceObj)
         randomIndex = random.randint(0, self.n - 1)
         # Set values to randomly indexed elements
         if not self.nextFallingPieceObj:
@@ -305,11 +308,8 @@ class Board(QGroupBox):
         self.currFallingPieceBlist = newPiece
         newNumRows, newNumCols = len(newPiece), len(newPiece[0])
         self.rowPosition = oldCenterRow - newNumRows // 2
-        # print(self.rowPosition)
         self.colPosition = oldCenterCol - newNumCols // 2
-        # print(self.colPosition)
         # Check whether the new piece is legal
-        # self.update()
         if not self.fallingPieceIsLegal():
             # Restore the values based on old values stored above
             self.currFallingPieceBlist = oldPiece
@@ -330,6 +330,10 @@ class Board(QGroupBox):
                     self.currentBoard[self.rowPosition][self.colPosition] = hue
                     self.update()
         self.removeFullRows()
+        if self.currHoldPieceObj:
+            self.placeHold = True
+            self.placeHoldSignal.emit(self.placeHold)
+            self.placeHold = False
         self.update()
 
     def removeFullRows(self):
@@ -368,17 +372,16 @@ class Board(QGroupBox):
         painter.drawText(retryPt, retryTxt)
 
     def restartGame(self) -> None:
+        self.currentBoard = self.buildBoard(color=self.bgColor)
         self.update()
 
     def rewindFallingPiece(self):
         pass
 
     def activateHoldQueue(self):
-        # press Ctrl + C to activate hold queue
-        # removes current piece from board
-        # draws outline in hold queue
-        # draws piece after next piece is placed
-        pass
+        self.currHoldPieceObj = self.currFallingPieceObj
+        self.getHoldSignal.emit(self.currHoldPieceObj)
+        self.newFallingPiece()
 
     @pyqtSlot(QKeyEvent)
     def onKeyPressEvent(self, event: QKeyEvent) -> None:
@@ -386,8 +389,8 @@ class Board(QGroupBox):
             if event.key() == Qt.Key.Key_Control.value and \
                     event.key() == Qt.Key.Key_Z.value:
                 self.rewindFallingPiece()
-            elif event.key() == Qt.Key.Key_Control.value and \
-                    event.key() == Qt.Key.Key_C.value:
+            elif event.key() == Qt.Key.Key_H.value:
+                # press H to activate hold queue
                 self.activateHoldQueue()
             elif event.key() == Qt.Key.Key_Down.value:
                 # down-arrow key press --> move down
@@ -422,9 +425,11 @@ class Board(QGroupBox):
                 self.placeFallingPiece()
                 self.update()
                 self.newFallingPiece()
-                # Game over when the falling piece placed is illegal
+                # Game over when falling piece placed is illegal
                 if not self.fallingPieceIsLegal():
                     self.gameOver = True
+                    self.gameStatus['over'] = True
+                    self.gameStatusSignal.emit(self.gameStatus)
         else:
             super(Board, self).timerEvent(event)
 
