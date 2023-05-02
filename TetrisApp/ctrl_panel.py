@@ -11,10 +11,13 @@ class CtrlPanel(QGroupBox):
         self.rows, self.score = 0, 0
         self.runParent = runTetrisParent
         self.runParent.userSignal[str].connect(self.getUser)
+        self.runParent.board.gameStatusSignal[object].connect(self.gameStatus)
         self.runParent.board.nextSignal[object].connect(self.getNext)
+        self.runParent.board.heldSignal[object].connect(self.getHold)
         self.runParent.board.scoreSignal[int].connect(self.getScore)
         self.runParent.board.scoreSignal[int].connect(self.getRowsCleared)
         self.width, self.height = self.runParent.width, self.runParent.height
+        self.buttons = dict.fromkeys(['START', 'PAUSE', 'LOGIN'], None)
         self.setContentsMargins(50, 50, 50, 50)
         self.setFixedSize(self.width + 100, self.height + 100)
 
@@ -25,7 +28,10 @@ class CtrlPanel(QGroupBox):
         self.scoreLabel = None
         self.rowsLabel = None
 
+        self.pausedLabel = None
+
         self.nextPieceObject = None
+        self.heldPieceObject = None
 
         # alignments
         self.hcenter = Qt.AlignmentFlag.AlignHCenter
@@ -35,6 +41,13 @@ class CtrlPanel(QGroupBox):
         self.vbox = QVBoxLayout()
         self.ctrlInit()
 
+    def gameStatus(self, gameStatus):
+        if self.pausedLabel:
+            if gameStatus['paused']:
+                self.pausedLabel.setText("PAUSED")
+            else:
+                self.pausedLabel.setText("PLAYING")
+
     def getUser(self):
         if self.userLabel:
             self.userLabel.setText("Harriet")
@@ -42,6 +55,9 @@ class CtrlPanel(QGroupBox):
 
     def getNext(self, nextPiece):
         self.nextPieceObject = nextPiece
+
+    def getHold(self, heldPiece):
+        self.heldPieceObject = heldPiece
 
     def getScore(self, score):
         if self.scoreLabel:
@@ -81,6 +97,7 @@ class CtrlPanel(QGroupBox):
         painter.setPen(QColor("#FFFFFF"))
         painter.setFont(self.font)
         self.drawPreviewBox(painter)
+        self.drawHeldPiece(painter)
 
     def drawPreviewBox(self, painter):
         self.runParent.board.drawBackground(painter, width=520,
@@ -100,24 +117,28 @@ class CtrlPanel(QGroupBox):
                         self.runParent.board.drawCell(painter, i, j, hue, next=True)
                         self.runParent.board.drawPiecePart(painter, i, j, hue, next=True)
 
-    def drawHeldPiece(self):
-        pass
+    def drawHeldPiece(self, painter):
+        if self.heldPieceObject:
+            heldPiece = self.heldPieceObject
+            heldColors = self.runParent.board.getCurrentPieceColors(heldPiece)
+            heldBlist = heldPiece.getPiece()
+            for i in range(len(heldBlist)):
+                for j in range(len(heldBlist[0])):
+                    if heldBlist[i][j]:
+                        hue = heldColors['hue']
+                        self.runParent.board.drawCell(painter, i, j, hue, next=False, held=True)
+                        self.runParent.board.drawPiecePart(painter, i, j, hue, next=False, held=True)
 
     def buttonBox(self):
         hbox = QHBoxLayout()
         hbox.setAlignment(self.hcenter)
-        startButton = QPushButton("START GAME", self)
-        startButton.setFont(self.font)
-        startButton.setObjectName("button")
-        startButton.setStyleSheet(open('styles.css').read())
-        startButton.setFixedSize(250, 60)
-        hbox.addWidget(startButton)
-        pauseButton = QPushButton("PAUSE GAME", self)
-        pauseButton.setFont(self.font)
-        pauseButton.setObjectName("button")
-        pauseButton.setStyleSheet(open('styles.css').read())
-        pauseButton.setFixedSize(250, 60)
-        hbox.addWidget(pauseButton)
+        for btn in self.buttons:
+            button = QPushButton(btn, self)
+            button.setFont(self.font)
+            button.setObjectName("button")
+            button.setStyleSheet(open('styles.qss').read())
+            button.setFixedSize(160, 40)
+            hbox.addWidget(button)
         self.vbox.addLayout(hbox)
 
     def addRoundedWidget(self, width, height, label=""):
@@ -130,7 +151,7 @@ class CtrlPanel(QGroupBox):
         mask = QRegion(path.toFillPolygon().toPolygon())
         box.setMask(mask)
         box.setObjectName("outer-box")
-        box.setStyleSheet(open('styles.css').read())
+        box.setStyleSheet(open('styles.qss').read())
         vbox = QVBoxLayout()
         text = QLabel(label, box, alignment=self.hcenter | self.top)
         shadow = QGraphicsDropShadowEffect()
@@ -138,7 +159,7 @@ class CtrlPanel(QGroupBox):
         text.setGraphicsEffect(shadow)
         text.setFont(self.font2)
         text.setObjectName("text")
-        text.setStyleSheet(open('styles.css').read())
+        text.setStyleSheet(open('styles.qss').read())
         if label == 'SCORE':
             stats = QLabel(str(self.score), box)
             self.scoreLabel = stats

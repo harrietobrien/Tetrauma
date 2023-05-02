@@ -79,19 +79,10 @@ class ColorSchemes:
         keys = ('hue', 'tint', 'shade')
         for i in range(len(pieces)):
             piece = pieces[i]
-            print(self.selection)
-            print(defaults[self.selection])
             hue = defaults[self.selection][i]
-            print('hue', hue)
             tint = self.getTint(hue)
-            print('tint', tint)
             shade = self.getShade(hue)
-            print('shade', shade)
             vals = (hue, tint, shade)
             colors = dict(zip(keys, vals))
             schemeDict[piece] = colors
         return schemeDict
-
-
-# schemes = ColorSchemes()
-# schemes.getSchemeDict(1)

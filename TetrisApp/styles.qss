@@ -1,0 +1,30 @@
+QPushButton#button {
+	font-size:15px;
+    width:140px;
+    height:50px;
+    border-width:1px;
+    color:#333333;
+    border-color:#ee1eb5;
+    font-weight:bold;
+    border-top-left-radius:20px;
+    border-top-right-radius:20px;
+    border-bottom-left-radius:20px;
+    border-bottom-right-radius:20px;
+    background:qlineargradient(y1: 0, y2: 1,
+     stop: 0 #D2449D, stop: 1 #C71585);
+}
+QPushButton#button:hover {
+	background: qlineargradient(y1: 0, y2: 1,
+	stop: 0 #C71585,  stop: 1 #D2449D);
+}
+QPushButton#button:active {
+	top:1px;
+}
+QWidget#outer-box {
+    border-radius: 20px;
+    background: rgba(151, 217, 0, 0.23);
+    border: 5px solid #333333;
+}
+QLabel#text {
+    padding: 10px;
+}
