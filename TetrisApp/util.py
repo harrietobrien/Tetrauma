@@ -26,12 +26,16 @@ class RoundedWidget(QWidget):
         self.width = width
         self.height = height
         self.label = label
-        self.vbox = None
         self.font2 = QFont('Helvetica', 20, QFont.Weight.Medium)
-        self.hcenter = Qt.AlignmentFlag.AlignHCenter
-        self.vcenter = Qt.AlignmentFlag.AlignVCenter
-        self.top = Qt.AlignmentFlag.AlignTop
-        self.addRoundedWidget()
+        self.setAutoFillBackground(True)
+        self.setFixedSize(self.width, self.height)
+        path = QPainterPath()
+        radius = 20.0
+        path.addRoundedRect(QRectF(self.rect()), radius, radius)
+        mask = QRegion(path.toFillPolygon().toPolygon())
+        self.setMask(mask)
+        self.setObjectName("outer-box")
+        self.setStyleSheet(open('styles.qss').read())
 
     def addRoundedWidget(self):
         self.setAutoFillBackground(True)
@@ -43,17 +47,6 @@ class RoundedWidget(QWidget):
         self.setMask(mask)
         self.setObjectName("outer-box")
         self.setStyleSheet(open('styles.qss').read())
-        self.vbox = QVBoxLayout()
-        text = QLabel(self.label, self, alignment=self.hcenter | self.top)
-        shadow = QGraphicsDropShadowEffect()
-        shadow.setBlurRadius(25)
-        text.setGraphicsEffect(shadow)
-        text.setFont(self.font2)
-        text.setObjectName("text")
-        text.setStyleSheet(open('styles.qss').read())
-        self.vbox.addWidget(text, alignment=self.hcenter | self.top)
-        self.vbox.setAlignment(self.hcenter)
-        self.setLayout(self.vbox)
         return self
 
 

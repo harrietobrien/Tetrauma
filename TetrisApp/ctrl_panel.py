@@ -19,22 +19,16 @@ class CtrlPanel(QGroupBox):
         self.runParent.board.scoreSignal[int].connect(self.getRowsCleared)
         self.width, self.height = self.runParent.width, self.runParent.height
         self.buttons = dict.fromkeys(['START', 'PAUSE', 'LOGIN'], None)
-        self.setContentsMargins(50, 50, 50, 50)
         self.setFixedSize(self.width + 100, self.height + 100)
 
         self.font = QFont('Helvetica', 20, QFont.Weight.DemiBold)
         self.font2 = QFont('Helvetica', 20, QFont.Weight.Medium)
 
-        self.userLabel = None
-        self.scoreLabel = None
-        self.rowsLabel = None
-
-        self.pausedLabel = None
-        self.gameOver = False
+        self.userLabel, self.scoreLabel, self.rowsLabel = None, None, None
+        self.pausedLabel, self.gameOver = None, False
 
         self.nextPieceObject = None
-        self.heldPieceObject = None
-        self.placeHoldPiece = None
+        self.heldPieceObject, self.placeHoldPiece = None, None
 
         self.hcenter = Qt.AlignmentFlag.AlignHCenter
         self.vcenter = Qt.AlignmentFlag.AlignVCenter
@@ -62,7 +56,6 @@ class CtrlPanel(QGroupBox):
 
     def getHold(self, heldPiece):
         self.heldPieceObject = heldPiece
-        # draw piece outline
         self.update()
 
     def placeHold(self, place: bool):
@@ -89,14 +82,16 @@ class CtrlPanel(QGroupBox):
         labelGIF.setGraphicsEffect(shadow)
         self.vbox.addWidget(labelGIF, alignment=self.hcenter | self.top)
         self.buttonBox()
-        statsBox = QHBoxLayout()
-        statsBox.setAlignment(self.hcenter)
-        self.scoreWidget = self.addRoundedWidget(260, 120, 'SCORE')
-        self.rowsWidget = self.addRoundedWidget(260, 120, 'ROWS CLEARED')
-        statsBox.addWidget(self.scoreWidget)
-        statsBox.addWidget(self.rowsWidget)
-        self.vbox.addLayout(statsBox)
+        # statsBox = QHBoxLayout()
+        # statsBox.setAlignment(self.hcenter)
+        self.infoWidget = self.addRoundedWidget(560, 370)
+        # self.scoreWidget = self.addRoundedWidget(260, 120, 'SCORE')
+        # self.rowsWidget = self.addRoundedWidget(260, 120, 'ROWS CLEARED')
+        # statsBox.addWidget(self.scoreWidget)
+        # statsBox.addWidget(self.rowsWidget)
+        self.vbox.addWidget(self.infoWidget)
         self.vbox.addStretch()
+        self.vbox.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.setLayout(self.vbox)
         self.update()
 
@@ -108,10 +103,10 @@ class CtrlPanel(QGroupBox):
         self.drawPreviewBox(painter)
 
     def drawPreviewBox(self, painter):
-        origin = QPointF(45, 410)
+        origin = QPointF(45, 600)  # 410
         self.runParent.board.drawBackground(painter, width=560, height=250, start=origin)
-        painter.drawText(120, 450, "NEXT PIECE")
-        painter.drawText(380, 450, "HOLD QUEUE")
+        painter.drawText(120, 640, "NEXT PIECE")
+        painter.drawText(380, 640, "HOLD QUEUE")
         if not self.gameOver:
             self.drawNextPiece(painter)
             self.drawHeldPiece(painter)
@@ -157,7 +152,8 @@ class CtrlPanel(QGroupBox):
             hbox.addWidget(button)
         self.vbox.addLayout(hbox)
 
-    def addRoundedWidget(self, width, height, label=""):
+    @staticmethod
+    def addRoundedWidget(width, height):
         box = QWidget()
         box.setAutoFillBackground(True)
         box.setFixedSize(width, height)
@@ -168,28 +164,4 @@ class CtrlPanel(QGroupBox):
         box.setMask(mask)
         box.setObjectName("outer-box")
         box.setStyleSheet(open('styles.qss').read())
-        vbox = QVBoxLayout()
-        text = QLabel(label, box, alignment=self.hcenter | self.top)
-        shadow = QGraphicsDropShadowEffect()
-        shadow.setBlurRadius(25)
-        text.setGraphicsEffect(shadow)
-        text.setFont(self.font2)
-        text.setObjectName("text")
-        text.setStyleSheet(open('styles.qss').read())
-        if label == 'SCORE':
-            stats = QLabel(str(self.score), box)
-            self.scoreLabel = stats
-            stats.setFont(self.font2)
-            vbox.addWidget(text, alignment=self.hcenter | self.top)
-            vbox.addWidget(stats, alignment=self.hcenter | self.top)
-        elif label == 'ROWS CLEARED':
-            stats = QLabel(str(self.rows), box)
-            self.rowsLabel = stats
-            stats.setFont(self.font2)
-            vbox.addWidget(text, alignment=self.hcenter | self.top)
-            vbox.addWidget(stats, alignment=self.hcenter | self.top)
-        else:
-            vbox.addWidget(text, alignment=self.hcenter | self.top)
-        vbox.setAlignment(self.hcenter)
-        box.setLayout(vbox)
         return box

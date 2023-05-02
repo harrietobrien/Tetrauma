@@ -22,8 +22,6 @@ class Board(QGroupBox):
         self.parent = runTetrisParent
         self.width, self.height = self.parent.width, self.parent.height
         self.rows, self.cols = self.parent.rows, self.parent.cols
-        self.positions = [(i, j) for i in range(self.rows)
-                          for j in range(self.cols)]
         self.cellSize = self.parent.cellSize
         self.margin = self.parent.margin
         self.gameStatus = dict.fromkeys(['paused', 'over'], None)
@@ -54,10 +52,11 @@ class Board(QGroupBox):
 
         self.setFixedSize(self.width + 100, self.height + 100)
         self.grid = None
+        self.top = Qt.AlignmentFlag.AlignTop
         self.hcenter = Qt.AlignmentFlag.AlignHCenter
         self.vcenter = Qt.AlignmentFlag.AlignVCenter
         self.currentBoard = self.buildBoard(color=self.bgColor)
-        self.permanentBoard = self.buildBoard(color=self.bgColor)
+        self.goWidgetSet = False
 
         self.startGame()
         self.show()
@@ -77,6 +76,10 @@ class Board(QGroupBox):
         self.newFallingPiece()
         self.timer.start(self.timerDelay, self)
 
+    def endGame(self):
+        if self.gameOver and not self.goWidgetSet:
+            self.gameOverMessage()
+
     def pauseGame(self):
         self.paused = not self.paused
         if self.paused:
@@ -89,22 +92,28 @@ class Board(QGroupBox):
             self.gameStatusSignal.emit(self.gameStatus)
         self.update()
 
-    # updates self.grid based on self.currentBoard
-    def updateBoard(self):
-        for position in self.positions:
-            i, j = position
-            permCell = self.permanentBoard[i][j]
-            if permCell != self.bgColor and permCell != self.bgColor:
-                self.currentBoard[i][j] = self.permanentBoard[i][j]
-            currCell = self.currentBoard[i][j]
-            self.grid.addWidget(BKGDCell(currCell, self.cellSize), *position)
-        self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
-        self.setLayout(self.grid)
-
     # creates self.currentBoard
     def buildBoard(self, color=None) -> list:
         rs, cs = self.rows, self.cols
         return [[color] * cs for _ in range(rs)]
+
+    def gameOverMessage(self):
+        goVbox = QVBoxLayout(self)
+        gameOverGIF = QLabel()
+        GIF = QMovie("game_over.gif")
+        if gameOverGIF is not None:
+            gameOverGIF.setMovie(GIF)
+            GIF.start()
+        shadow = QGraphicsDropShadowEffect()
+        shadow.setBlurRadius(15)
+        gameOverGIF.setGraphicsEffect(shadow)
+        goVbox.addWidget(gameOverGIF, alignment=self.hcenter)
+        scoreTxt = QLabel("FINAL SCORE:\n{s}".format(s=str(self.score)))
+        retryTxt = QLabel("Press 'r' or click START to try again!")
+        goVbox.addWidget(scoreTxt, alignment=self.hcenter)
+        goVbox.addWidget(retryTxt, alignment=self.hcenter)
+        self.setLayout(goVbox)
+        self.goWidgetSet = True
 
     def drawBoard(self, painter):
         for row in range(self.rows):
@@ -125,7 +134,7 @@ class Board(QGroupBox):
             self.drawFallingPiece(painter)
         else:
             self.drawBackground(painter)
-            self.gameOverMessage(painter)
+            self.endGame()
 
     def getCellBounds(self, row, col):
         x0 = self.margin + col * self.cellSize
@@ -152,9 +161,9 @@ class Board(QGroupBox):
 
     def drawCell(self, painter, row, col, color, piece=None):
         if piece == "next":
-            x, y = 80, 460
+            x, y = 80, 650
         elif piece == "hold" or piece == "outline":
-            x, y = 340, 460
+            x, y = 340, 650
         else:
             assert not piece
             x, y = 50, 50
@@ -194,9 +203,9 @@ class Board(QGroupBox):
 
     def drawPiecePart(self, painter, row, col, color, piece=None):
         if piece == "next":
-            x, y = 80, 460
+            x, y = 80, 650
         elif piece == "hold":
-            x, y = 340, 460
+            x, y = 340, 650
         else:
             assert not piece
             x, y = 50, 50
@@ -356,20 +365,6 @@ class Board(QGroupBox):
 
     def clearBoard(self):
         self.update()
-
-    def gameOverMessage(self, painter):
-        mw = self.roundHalfUp(self.width / 2)
-        mh = self.roundHalfUp(self.height / 2)
-        offset = 30
-        centerPt = QPoint(mw, mh + offset)
-        gameOverTxt = "GAME OVER"
-        painter.drawText(centerPt, gameOverTxt)
-        scoreTxt = "FINAL SCORE: " + str(self.score)
-        scorePt = QPoint(mw, mh + 2 * offset)
-        painter.drawText(scorePt, scoreTxt)
-        retryTxt = "Press 'r' try again!"
-        retryPt = QPoint(mw, mh + 3 * offset)
-        painter.drawText(retryPt, retryTxt)
 
     def restartGame(self) -> None:
         self.currentBoard = self.buildBoard(color=self.bgColor)
