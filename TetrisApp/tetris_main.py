@@ -8,16 +8,17 @@ from ctrl_panel import CtrlPanel
 
 
 class RunTetris(QMainWindow):
+    startBoardSignal = pyqtSignal(bool)
+    pauseBoardSignal = pyqtSignal(bool)
     userSignal = pyqtSignal(str)
     scoreSignal = pyqtSignal(int)
     rowSignal = pyqtSignal(int)
     key_pressed = pyqtSignal(QKeyEvent)
     paint_event = pyqtSignal(QPaintEvent)
-    mouse_pressed = pyqtSignal()
+    mouse_pressed = pyqtSignal(QMouseEvent)
 
     def __init__(self, rows=15, cols=10, margin=25, cellSize=50):
         super(RunTetris, self).__init__()
-        # board configuration / dimensions
         self.timerDelay = None
         self.board = None
         self.ctrlPanel = None
@@ -25,20 +26,20 @@ class RunTetris(QMainWindow):
         self.cellSize, self.margin = cellSize, margin
         self.width = self.getWidth()
         self.height = self.getHeight()
+        self.paused, self.started = False, False
         self.initGUI()
         self.startServer()
 
-    def startServer(self):
-        Server(self)
-
     def initGUI(self):
-        # board components
-        hbox = QHBoxLayout()
-        layout = QWidget()
         self.board = Board(self)
         self.board.scoreSignal[int].connect(self.currentScore)
         self.board.rowSignal[int].connect(self.currentRowsRmv)
         self.ctrlPanel = CtrlPanel(self)
+        self.ctrlPanel.startRTSignal[bool].connect(self.startBoard)
+        self.ctrlPanel.pauseRTSignal[bool].connect(self.pauseBoard)
+        # board components
+        hbox = QHBoxLayout()
+        layout = QWidget()
         hbox.addWidget(self.board)
         hbox.addWidget(self.ctrlPanel)
         layout.setLayout(hbox)
@@ -53,6 +54,17 @@ class RunTetris(QMainWindow):
         self.setWindowTitle('Tetrauma')
         self.show()
 
+    def startBoard(self, started: bool):
+        self.started = started
+        self.startBoardSignal.emit(self.started)
+
+    def pauseBoard(self, paused: bool):
+        self.paused = paused
+        self.pauseBoardSignal.emit(self.paused)
+
+    def startServer(self):
+        Server(self)
+
     def currentScore(self, score):
         self.scoreSignal.emit(score)
         # print("Score: ", score)
@@ -65,21 +77,25 @@ class RunTetris(QMainWindow):
         self.key_pressed.emit(event)
         return super().keyPressEvent(event)
 
+    def mousePressEvent(self, event: QMouseEvent) -> None:
+        self.mouse_pressed.emit(event)
+        return super().mousePressEvent(event)
+
     def paintEvent(self, event: QPaintEvent) -> None:
         self.paint_event.emit(event)
         return super().paintEvent(event)
-
-    def __str__(self):
-        print('width   -->', self.width)
-        print('height  -->', self.height)
-        print('cellSize ->', self.cellSize)
-        print('margin  -->', self.margin)
 
     def getWidth(self):
         return (self.margin * 2) + (self.cellSize * self.cols)
 
     def getHeight(self):
         return (self.margin * 2) + (self.cellSize * self.rows)
+
+    def __str__(self):
+        print('width   -->', self.width)
+        print('height  -->', self.height)
+        print('cellSize ->', self.cellSize)
+        print('margin  -->', self.margin)
 
 
 def playTetris():

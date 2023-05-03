@@ -1,5 +1,5 @@
 import random
-from PyQt6.QtCore import Qt
+from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6.QtCore import *
 from PyQt6.QtWidgets import *
 from PyQt6.QtGui import *
@@ -9,31 +9,36 @@ from util import BKGDCell
 
 
 class Board(QGroupBox):
-    gameStatusSignal = pyqtSignal(object)
+    gameStatusSignal = pyqtSignal(bool)
     nextSignal = pyqtSignal(object)
-    getHoldSignal = pyqtSignal(object)  # draw outline
-    placeHoldSignal = pyqtSignal(bool)  # draw piece
+    # signal to draw tmp opaque piece in queue
+    getHoldSignal = pyqtSignal(object)
+    # signal to draw colored piece in queue
+    placeHoldSignal = pyqtSignal(bool)
     scoreSignal = pyqtSignal(int)
     rowSignal = pyqtSignal(int)
     SCHEMES = ColorSchemes()
 
     def __init__(self, runTetrisParent) -> None:
         super(Board, self).__init__(runTetrisParent)
+        # board configuration / dimensions
         self.parent = runTetrisParent
         self.width, self.height = self.parent.width, self.parent.height
         self.rows, self.cols = self.parent.rows, self.parent.cols
         self.cellSize = self.parent.cellSize
         self.margin = self.parent.margin
-        self.gameStatus = dict.fromkeys(['paused', 'over'], None)
+        # signal stuff
+        self.parent.startBoardSignal[bool].connect(self.startGame)
+        self.parent.pauseBoardSignal[bool].connect(self.pauseGame)
+
         inst = Tetromino(defaultNumber=1)
-        self.scheme = Tetromino.colors
+        self.scheme = Tetromino.colors  # ?
         self.fallingPieceStrux = inst.getStructs()
         self.currHoldPieceObj = None
         self.placeHold = False
         self.n = len(self.fallingPieceStrux)
         self.bgColor = "#00FFFFFF"
-        # CURRENT FALLING PIECE
-        self.nextFallingPieceObj = None
+        # Current falling piece
         self.currFallingPieceObj = None
         self.currFallingPieceBlist = None
         self.currFallingPieceColors = None
@@ -41,12 +46,14 @@ class Board(QGroupBox):
         self.currFallingPieceRow = 0
         self.rowPosition = 0
         self.colPosition = 0
+        # Next falling piece for preview
+        self.nextFallingPieceObj = None
 
         self.numRowsRemoved = 0
         self.started, self.paused = None, None
         self.timerDelay = 250  # ms
         self.gameOver = False
-
+        self.goFrame = None
         self.score = 0
         self.timer = QBasicTimer()
 
@@ -57,63 +64,73 @@ class Board(QGroupBox):
         self.vcenter = Qt.AlignmentFlag.AlignVCenter
         self.currentBoard = self.buildBoard(color=self.bgColor)
         self.goWidgetSet = False
+        self.goVbox = None
 
         self.startGame()
         self.show()
 
-    def gridInit(self):
-        self.grid = QGridLayout(self)
-        self.grid.setSpacing(1)
-        self.grid.setContentsMargins(50, 50, 50, 50)
-        self.grid.setAlignment(self.grid, self.vcenter | self.hcenter)
-
     def startGame(self):
-        if self.paused:
-            return
+        self.update()
+        self.toggleGameOverMsg()
+        self.gameOver = False
+        self.goWidgetSet = False
+        self.gameStatusSignal.emit(self.gameOver)
+        self.currentBoard = self.buildBoard(color=self.bgColor)
         self.started = True
+        self.score = 0
         self.numRowsRemoved = 0
         # generate/select first falling piece
         self.newFallingPiece()
         self.timer.start(self.timerDelay, self)
 
-    def endGame(self):
-        if self.gameOver and not self.goWidgetSet:
-            self.gameOverMessage()
+    def toggleGameOverMsg(self):
+        if self.goVbox is not None:
+            while self.goVbox.count():
+                item = self.goVbox.takeAt(0)
+                widget = item.widget()
+                widget.setHidden(not widget.isHidden())
 
-    def pauseGame(self):
-        self.paused = not self.paused
-        if self.paused:
+    def endGame(self):
+        self.currentBoard = self.buildBoard(color=self.bgColor)
+        if self.gameOver and not self.goWidgetSet:
             self.timer.stop()
-            self.gameStatus['paused'] = True
-            self.gameStatusSignal.emit(self.gameStatus)
-        else:
-            self.timer.start(self.timerDelay, self)
-            self.gameStatus['paused'] = False
-            self.gameStatusSignal.emit(self.gameStatus)
+            self.gameOverMessage()
+            # self.toggleGameOverMsg()
         self.update()
 
-    # creates self.currentBoard
+    def pauseGame(self, paused: bool):
+        self.paused = paused
+        if self.paused:
+            self.timer.stop()
+        else:
+            self.timer.start(self.timerDelay, self)
+        self.update()
+
     def buildBoard(self, color=None) -> list:
+        # creates self.currentBoard
         rs, cs = self.rows, self.cols
         return [[color] * cs for _ in range(rs)]
 
     def gameOverMessage(self):
-        goVbox = QVBoxLayout(self)
-        gameOverGIF = QLabel()
-        GIF = QMovie("game_over.gif")
-        if gameOverGIF is not None:
-            gameOverGIF.setMovie(GIF)
-            GIF.start()
-        shadow = QGraphicsDropShadowEffect()
-        shadow.setBlurRadius(15)
-        gameOverGIF.setGraphicsEffect(shadow)
-        goVbox.addWidget(gameOverGIF, alignment=self.hcenter)
-        scoreTxt = QLabel("FINAL SCORE:\n{s}".format(s=str(self.score)))
-        retryTxt = QLabel("Press 'r' or click START to try again!")
-        goVbox.addWidget(scoreTxt, alignment=self.hcenter)
-        goVbox.addWidget(retryTxt, alignment=self.hcenter)
-        self.setLayout(goVbox)
-        self.goWidgetSet = True
+        if self.goVbox:
+            self.toggleGameOverMsg()
+        else:
+            self.goVbox = QVBoxLayout(self)
+            gameOverGIF = QLabel()
+            GIF = QMovie("game_over.gif")
+            if gameOverGIF is not None:
+                gameOverGIF.setMovie(GIF)
+                GIF.start()
+            shadow = QGraphicsDropShadowEffect()
+            shadow.setBlurRadius(15)
+            gameOverGIF.setGraphicsEffect(shadow)
+            self.goVbox.addWidget(gameOverGIF, alignment=self.hcenter)
+            scoreTxt = QLabel("FINAL SCORE:\n{s}".format(s=str(self.score)))
+            retryTxt = QLabel("Press 'r' or click START to try again!")
+            self.goVbox.addWidget(scoreTxt, alignment=self.hcenter)
+            self.goVbox.addWidget(retryTxt, alignment=self.hcenter)
+            self.setLayout(self.goVbox)
+            self.goWidgetSet = True
 
     def drawBoard(self, painter):
         for row in range(self.rows):
@@ -231,7 +248,6 @@ class Board(QGroupBox):
                         hue = self.currFallingPieceColors['hue']
                         self.drawCell(painter, self.rowPosition, self.colPosition, hue)
                         self.drawPiecePart(painter, self.rowPosition, self.colPosition, hue)
-                        # self.currentBoard[self.rowPosition][self.colPosition] = hue
 
     @staticmethod
     def roundHalfUp(d):
@@ -256,7 +272,6 @@ class Board(QGroupBox):
             self.currFallingPieceObj = self.nextFallingPieceObj
             self.nextFallingPieceObj = self.fallingPieceStrux[randomIndex]
             self.nextSignal.emit(self.nextFallingPieceObj)
-
         self.currFallingPieceBlist = self.currFallingPieceObj.getPiece()
         # Get current piece type
         self.currFallingPieceColors = self.getCurrentPieceColors(self.currFallingPieceObj)
@@ -367,16 +382,27 @@ class Board(QGroupBox):
         self.update()
 
     def restartGame(self) -> None:
+        self.gameOver = not self.gameOver
+        self.goWidgetSet = not self.goWidgetSet
         self.currentBoard = self.buildBoard(color=self.bgColor)
+        self.startGame()
         self.update()
 
     def rewindFallingPiece(self):
         pass
 
     def activateHoldQueue(self):
-        self.currHoldPieceObj = self.currFallingPieceObj
-        self.getHoldSignal.emit(self.currHoldPieceObj)
-        self.newFallingPiece()
+        if not self.currHoldPieceObj:
+            self.currHoldPieceObj = self.currFallingPieceObj
+            self.getHoldSignal.emit(self.currHoldPieceObj)
+            self.newFallingPiece()
+        else:
+            # move hold piece to next
+            self.nextFallingPieceObj = self.currHoldPieceObj
+            self.currHoldPieceObj = None
+            self.getHoldSignal.emit(None)
+            self.placeHoldSignal.emit(False)
+            # self.newFallingPiece()
 
     @pyqtSlot(QKeyEvent)
     def onKeyPressEvent(self, event: QKeyEvent) -> None:
@@ -404,7 +430,7 @@ class Board(QGroupBox):
                 self.startGame()
             elif event.key() == Qt.Key.Key_P.value:
                 # 'p' key press --> pause game
-                self.pauseGame()
+                pass
             elif event.key() == Qt.Key.Key_Space.value:
                 # space bar --> hard drop
                 pass
@@ -422,9 +448,8 @@ class Board(QGroupBox):
                 self.newFallingPiece()
                 # Game over when falling piece placed is illegal
                 if not self.fallingPieceIsLegal():
-                    self.gameOver = True
-                    self.gameStatus['over'] = True
-                    self.gameStatusSignal.emit(self.gameStatus)
+                    self.gameOver = not self.gameOver
+                    self.gameStatusSignal.emit(self.gameOver)
         else:
             super(Board, self).timerEvent(event)
 

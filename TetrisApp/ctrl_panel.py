@@ -1,4 +1,4 @@
-from PyQt6.QtCore import Qt, QRectF, QPointF
+from PyQt6.QtCore import Qt, QRectF, QPointF, pyqtSignal, pyqtSlot
 from PyQt6.QtGui import QFont, QMovie, QPainterPath, QRegion, QPainter, QColor
 from PyQt6.QtWidgets import QGroupBox, QVBoxLayout, QLabel, \
     QGraphicsDropShadowEffect, QHBoxLayout, QPushButton, QWidget
@@ -6,12 +6,14 @@ from util import RoundedWidget
 
 
 class CtrlPanel(QGroupBox):
+    startRTSignal = pyqtSignal(bool)
+    pauseRTSignal = pyqtSignal(bool)
+
     def __init__(self, runTetrisParent) -> None:
         super(CtrlPanel, self).__init__(runTetrisParent)
         self.rows, self.score = 0, 0
         self.runParent = runTetrisParent
-        self.runParent.userSignal[str].connect(self.getUser)
-        self.runParent.board.gameStatusSignal[object].connect(self.gameStatus)
+        self.runParent.board.gameStatusSignal[bool].connect(self.gameStatus)
         self.runParent.board.nextSignal[object].connect(self.getNext)
         self.runParent.board.getHoldSignal[object].connect(self.getHold)
         self.runParent.board.placeHoldSignal[bool].connect(self.placeHold)
@@ -23,6 +25,8 @@ class CtrlPanel(QGroupBox):
 
         self.font = QFont('Helvetica', 20, QFont.Weight.DemiBold)
         self.font2 = QFont('Helvetica', 20, QFont.Weight.Medium)
+
+        self.paused, self.started = False, False
 
         self.userLabel, self.scoreLabel, self.rowsLabel = None, None, None
         self.pausedLabel, self.gameOver = None, False
@@ -37,18 +41,15 @@ class CtrlPanel(QGroupBox):
         self.vbox = QVBoxLayout()
         self.ctrlInit()
 
-    def gameStatus(self, gameStatus):
-        if self.pausedLabel:
-            if gameStatus['paused']:
-                self.pausedLabel.setText("PAUSED")
-            else:
-                self.pausedLabel.setText("PLAYING")
-        if gameStatus['over']:
-            self.gameOver = True
-
     def getUser(self):
         if self.userLabel:
             self.userLabel.setText("Harriet")
+        self.update()
+
+    def gameStatus(self, over: bool):
+        self.gameOver = over
+        self.nextPieceObject = None
+        self.heldPieceObject = None
         self.update()
 
     def getNext(self, nextPiece):
@@ -82,13 +83,7 @@ class CtrlPanel(QGroupBox):
         labelGIF.setGraphicsEffect(shadow)
         self.vbox.addWidget(labelGIF, alignment=self.hcenter | self.top)
         self.buttonBox()
-        # statsBox = QHBoxLayout()
-        # statsBox.setAlignment(self.hcenter)
         self.infoWidget = self.addRoundedWidget(560, 370)
-        # self.scoreWidget = self.addRoundedWidget(260, 120, 'SCORE')
-        # self.rowsWidget = self.addRoundedWidget(260, 120, 'ROWS CLEARED')
-        # statsBox.addWidget(self.scoreWidget)
-        # statsBox.addWidget(self.rowsWidget)
         self.vbox.addWidget(self.infoWidget)
         self.vbox.addStretch()
         self.vbox.setAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -103,7 +98,7 @@ class CtrlPanel(QGroupBox):
         self.drawPreviewBox(painter)
 
     def drawPreviewBox(self, painter):
-        origin = QPointF(45, 600)  # 410
+        origin = QPointF(45, 600)
         self.runParent.board.drawBackground(painter, width=560, height=250, start=origin)
         painter.drawText(120, 640, "NEXT PIECE")
         painter.drawText(380, 640, "HOLD QUEUE")
@@ -140,6 +135,28 @@ class CtrlPanel(QGroupBox):
                             white.setAlpha(30)
                             self.runParent.board.drawCell(painter, i, j, white, piece="outline")
 
+    def login(self):
+        pass
+
+    @pyqtSlot()
+    def buttonClicked(self):
+        # find sender in self.buttons
+        btnObjects = list(self.buttons.values())
+        btnLabels = list(self.buttons.keys())
+        i = btnObjects.index(self.sender())
+        btnType = btnLabels[i]
+        if btnType == 'START':
+            self.started = not self.started
+            self.startRTSignal.emit(self.started)
+            # self.pausedLabel.setText("PLAYING")
+        elif btnType == 'PAUSE':
+            self.paused = not self.paused
+            self.pauseRTSignal.emit(self.paused)
+            # self.pausedLabel.setText("PAUSED")
+        else:
+            assert btnType == 'LOGIN'
+            self.login()
+
     def buttonBox(self):
         hbox = QHBoxLayout()
         hbox.setAlignment(self.hcenter)
@@ -150,6 +167,8 @@ class CtrlPanel(QGroupBox):
             button.setStyleSheet(open('styles.qss').read())
             button.setFixedSize(160, 40)
             hbox.addWidget(button)
+            button.clicked.connect(self.buttonClicked)
+            self.buttons[btn] = button
         self.vbox.addLayout(hbox)
 
     @staticmethod
