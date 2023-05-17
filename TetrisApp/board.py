@@ -108,35 +108,14 @@ class Board(QGroupBox):
         # AlignVCenter --> 0x0080
         center = 0x0004 | 0x0080
         gameOverTxt = "GAME OVER"
-        gameOverRect = QRect(QPoint(200, 200), QSize(350, 100))
+        gameOverRect = QRect(QPoint(150, 200), QSize(350, 100))
         painter.drawText(gameOverRect, center, gameOverTxt)
         scoreTxt = "FINAL SCORE:\n{s}".format(s=str(self.score))
-        scoreRect = QRect(QPoint(200, 350), QSize(350, 100))
+        scoreRect = QRect(QPoint(150, 350), QSize(350, 100))
         painter.drawText(scoreRect, center, scoreTxt)
         retryTxt = "Press 'r' or click START to try again!"
-        retryRect = QRect(QPoint(100, 450), QSize(300, 150))
+        retryRect = QRect(QPoint(150, 450), QSize(350, 100))
         painter.drawText(retryRect, center, retryTxt)
-
-    def gameOverMessage(self):
-        if self.goVbox:
-            self.toggleGameOverMsg()
-        else:
-            self.goVbox = QVBoxLayout(self)
-            gameOverGIF = QLabel()
-            GIF = QMovie("game_over.gif")
-            if gameOverGIF is not None:
-                gameOverGIF.setMovie(GIF)
-                GIF.start()
-            shadow = QGraphicsDropShadowEffect()
-            shadow.setBlurRadius(15)
-            gameOverGIF.setGraphicsEffect(shadow)
-            self.goVbox.addWidget(gameOverGIF, alignment=self.hcenter)
-            scoreTxt = QLabel("FINAL SCORE:\n{s}".format(s=str(self.score)))
-            retryTxt = QLabel("Press 'r' or click START to try again!")
-            self.goVbox.addWidget(scoreTxt, alignment=self.hcenter)
-            self.goVbox.addWidget(retryTxt, alignment=self.hcenter)
-            self.setLayout(self.goVbox)
-            self.goWidgetSet = True
 
     def drawBoard(self, painter):
         for row in range(self.rows):
