@@ -100,7 +100,8 @@ class RunTetris(QMainWindow):
 
 def playTetris():
     app = QApplication(sys.argv)
-    RunTetris(rows=15, cols=10, margin=25, cellSize=50)
+    run = RunTetris(rows=15, cols=10, margin=25, cellSize=50)
+    run.__str__()
     app.exec()
 
 

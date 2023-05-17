@@ -90,14 +90,6 @@ class Board(QGroupBox):
                 widget = item.widget()
                 widget.setHidden(not widget.isHidden())
 
-    def endGame(self):
-        self.currentBoard = self.buildBoard(color=self.bgColor)
-        if self.gameOver and not self.goWidgetSet:
-            self.timer.stop()
-            self.gameOverMessage()
-            # self.toggleGameOverMsg()
-        self.update()
-
     def pauseGame(self, paused: bool):
         self.paused = paused
         if self.paused:
@@ -110,6 +102,20 @@ class Board(QGroupBox):
         # creates self.currentBoard
         rs, cs = self.rows, self.cols
         return [[color] * cs for _ in range(rs)]
+
+    def drawGameOver(self, painter):
+        # AlignHCenter --> 0x0004
+        # AlignVCenter --> 0x0080
+        center = 0x0004 | 0x0080
+        gameOverTxt = "GAME OVER"
+        gameOverRect = QRect(QPoint(200, 200), QSize(350, 100))
+        painter.drawText(gameOverRect, center, gameOverTxt)
+        scoreTxt = "FINAL SCORE:\n{s}".format(s=str(self.score))
+        scoreRect = QRect(QPoint(200, 350), QSize(350, 100))
+        painter.drawText(scoreRect, center, scoreTxt)
+        retryTxt = "Press 'r' or click START to try again!"
+        retryRect = QRect(QPoint(100, 450), QSize(300, 150))
+        painter.drawText(retryRect, center, retryTxt)
 
     def gameOverMessage(self):
         if self.goVbox:
@@ -151,7 +157,11 @@ class Board(QGroupBox):
             self.drawFallingPiece(painter)
         else:
             self.drawBackground(painter)
-            self.endGame()
+            self.currentBoard = self.buildBoard(color=self.bgColor)
+            if self.gameOver:
+                self.timer.stop()
+                self.drawGameOver(painter)
+            self.update()
 
     def getCellBounds(self, row, col):
         x0 = self.margin + col * self.cellSize
