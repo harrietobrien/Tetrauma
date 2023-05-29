@@ -111,6 +111,7 @@ class Board(QGroupBox):
         # AlignHCenter --> 0x0004
         # AlignVCenter --> 0x0080
         painter.setFont(self.large)
+        painter.setPen(QColor("#FFFFFF"))
         center = 0x0004 | 0x0080
         gameOverTxt = "GAME OVER"
         gameOverRect = QRect(QPoint(125, 200), QSize(400, 100))
@@ -370,7 +371,7 @@ class Board(QGroupBox):
                 newRow -= 1
             else:
                 fullRows += 1
-                self.score += (fullRows ** 2)
+        self.score += (fullRows ** 2)
         self.numRowsRemoved += fullRows
         self.scoreSignal.emit(self.score)
         self.rowSignal.emit(self.numRowsRemoved)

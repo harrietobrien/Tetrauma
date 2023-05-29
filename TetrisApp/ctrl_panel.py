@@ -1,5 +1,5 @@
 from PyQt6.QtCore import Qt, QRectF, QPointF, pyqtSignal, pyqtSlot
-from PyQt6.QtGui import QFont, QMovie, QPainterPath, QRegion, QPainter, QColor
+from PyQt6.QtGui import QFont, QMovie, QPainterPath, QRegion, QPainter, QColor, QPen
 from PyQt6.QtWidgets import QGroupBox, QVBoxLayout, QLabel, \
     QGraphicsDropShadowEffect, QHBoxLayout, QPushButton, QWidget
 from util import RoundedWidget
@@ -12,6 +12,7 @@ class CtrlPanel(QGroupBox):
     def __init__(self, runTetrisParent) -> None:
         super(CtrlPanel, self).__init__(runTetrisParent)
         self.rows, self.score = 0, 0
+        self.user, self.status = "GUEST", "PLAYING"
         self.runParent = runTetrisParent
         self.runParent.board.gameStatusSignal[bool].connect(self.gameStatus)
         self.runParent.board.nextSignal[object].connect(self.getNext)
@@ -47,8 +48,17 @@ class CtrlPanel(QGroupBox):
             self.userLabel.setText("Harriet")
         self.update()
 
+    def setStatus(self):
+        if self.statusLabel:
+            txt = "STATUS: {status}".format(status=self.status)
+            self.statusLabel.setText(txt)
+
     def gameStatus(self, over: bool):
         self.gameOver = over
+        if self.gameOver:
+            self.status = "READY!"
+            self.setStatus()
+            self.update()
         self.nextPieceObject = None
         self.heldPieceObject = None
         self.update()
@@ -64,13 +74,17 @@ class CtrlPanel(QGroupBox):
         self.placeHoldPiece = place
 
     def getScore(self, score):
+        self.score = str(score)
         if self.scoreLabel:
-            self.scoreLabel.setText(str(score))
+            txt = "SCORE: {score}".format(score=self.score)
+            self.scoreLabel.setText(txt)
         self.update()
 
     def getRowsCleared(self, rows):
+        self.rows = str(rows)
         if self.rowsLabel:
-            self.rowsLabel.setText(str(rows))
+            txt = "ROWS REMOVED: {rows}".format(rows=self.rows)
+            self.rowsLabel.setText(txt)
         self.update()
 
     def ctrlInit(self):
@@ -84,8 +98,9 @@ class CtrlPanel(QGroupBox):
         labelGIF.setGraphicsEffect(shadow)
         self.vbox.addWidget(labelGIF, alignment=self.hcenter | self.top)
         self.buttonBox()
-        self.infoWidget = self.addRoundedWidget(560, 370)
-        self.vbox.addWidget(self.infoWidget)
+        self.infoBox = self.addRoundedWidget(560, 370)
+        self.populateInfoBox()
+        self.vbox.addWidget(self.infoBox)
         self.vbox.addStretch()
         self.vbox.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.setLayout(self.vbox)
@@ -101,6 +116,7 @@ class CtrlPanel(QGroupBox):
     def drawPreviewBox(self, painter):
         origin = QPointF(45, 600)
         self.runParent.board.drawBackground(painter, width=560, height=250, start=origin)
+        painter.setPen(QColor("#FFFFFF"))
         painter.drawText(90, 650, "NEXT PIECE")
         painter.drawText(350, 650, "HOLD QUEUE")
         if not self.gameOver:
@@ -146,17 +162,47 @@ class CtrlPanel(QGroupBox):
         btnLabels = list(self.buttons.keys())
         i = btnObjects.index(self.sender())
         btnType = btnLabels[i]
-        if btnType == 'START':
+        if btnType == "START":
             self.started = not self.started
             self.startRTSignal.emit(self.started)
-            # self.pausedLabel.setText("PLAYING")
-        elif btnType == 'PAUSE':
+            self.status = "PLAYING"
+            self.setStatus()
+        elif btnType == "PAUSE":
             self.paused = not self.paused
             self.pauseRTSignal.emit(self.paused)
-            # self.pausedLabel.setText("PAUSED")
+            self.status = "PAUSED"
+            self.setStatus()
         else:
-            assert btnType == 'LOGIN'
+            assert btnType == "LOGIN"
             self.login()
+
+    def populateInfoBox(self):
+        vbox = QVBoxLayout()
+        vbox.setAlignment(self.hcenter)
+        hbox1 = QHBoxLayout()
+        hbox1.setAlignment(self.hcenter)
+        self.userLabel = QLabel("USER: {user}".format(user=self.user))
+        self.userLabel.setFont(self.small)
+        self.settingsButton = QPushButton("Settings")
+        self.settingsButton.setFixedSize(170, 40)
+        self.settingsButton.setFont(self.small)
+        self.settingsButton.setObjectName("button")
+        hbox1.addWidget(self.userLabel)
+        #hbox1.addWidget(self.settingsButton)
+        vbox.addLayout(hbox1)
+        self.statusLabel = QLabel("STATUS: {status}".format(status=self.status))
+        self.statusLabel.setFont(self.small)
+        vbox.addWidget(self.statusLabel, alignment=self.hcenter)
+        hbox2 = QHBoxLayout()
+        hbox2.setAlignment(self.hcenter)
+        self.scoreLabel = QLabel("SCORE: {score}".format(score=self.score))
+        self.scoreLabel.setFont(self.small)
+        self.rowsLabel = QLabel("ROWS REMOVED: {rows}".format(rows=self.rows))
+        self.rowsLabel.setFont(self.small)
+        vbox.addWidget(self.scoreLabel, alignment=self.hcenter)
+        vbox.addWidget(self.rowsLabel, alignment=self.hcenter)
+        # vbox.addLayout(hbox2)
+        self.infoBox.setLayout(vbox)
 
     def buttonBox(self):
         position = self.hcenter | self.vcenter
