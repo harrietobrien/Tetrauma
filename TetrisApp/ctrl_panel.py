@@ -23,8 +23,9 @@ class CtrlPanel(QGroupBox):
         self.buttons = dict.fromkeys(['START', 'PAUSE', 'LOGIN'], None)
         self.setFixedSize(self.width + 100, self.height + 100)
 
-        self.font = QFont('Helvetica', 20, QFont.Weight.DemiBold)
-        self.font2 = QFont('Helvetica', 20, QFont.Weight.Medium)
+        self.small = self.runParent.smallFont
+        self.medium = self.runParent.mediumFont
+        self.large = self.runParent.largeFont
 
         self.paused, self.started = False, False
 
@@ -94,14 +95,14 @@ class CtrlPanel(QGroupBox):
         super().paintEvent(event)
         painter = QPainter(self)
         painter.setPen(QColor("#FFFFFF"))
-        painter.setFont(self.font)
+        painter.setFont(self.small)
         self.drawPreviewBox(painter)
 
     def drawPreviewBox(self, painter):
         origin = QPointF(45, 600)
         self.runParent.board.drawBackground(painter, width=560, height=250, start=origin)
-        painter.drawText(120, 640, "NEXT PIECE")
-        painter.drawText(380, 640, "HOLD QUEUE")
+        painter.drawText(90, 650, "NEXT PIECE")
+        painter.drawText(350, 650, "HOLD QUEUE")
         if not self.gameOver:
             self.drawNextPiece(painter)
             self.drawHeldPiece(painter)
@@ -158,14 +159,21 @@ class CtrlPanel(QGroupBox):
             self.login()
 
     def buttonBox(self):
+        position = self.hcenter | self.vcenter
         hbox = QHBoxLayout()
         hbox.setAlignment(self.hcenter)
         for btn in self.buttons:
-            button = QPushButton(btn, self)
-            button.setFont(self.font)
+            button = QPushButton(self)
+            text = QLabel(btn)
+            text.setFont(self.medium)
+            text.setFixedSize(160, 40)
+            text.setAlignment(position)
+            btnLayout = QHBoxLayout()
+            btnLayout.addWidget(text, alignment=position)
+            button.setLayout(btnLayout)
+            button.setFixedSize(170, 50)
             button.setObjectName("button")
             button.setStyleSheet(open('styles.qss').read())
-            button.setFixedSize(160, 40)
             hbox.addWidget(button)
             button.clicked.connect(self.buttonClicked)
             self.buttons[btn] = button

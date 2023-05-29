@@ -27,6 +27,10 @@ class RunTetris(QMainWindow):
         self.width = self.getWidth()
         self.height = self.getHeight()
         self.paused, self.started = False, False
+        ac, db = 'Arcade', QFont.Weight.DemiBold
+        self.largeFont = QFont(ac, 70, db)
+        self.mediumFont = QFont(ac, 50, db)
+        self.smallFont = QFont(ac, 40, db)
         self.initGUI()
         self.startServer()
 

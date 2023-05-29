@@ -1,5 +1,5 @@
 import random
-from PyQt6.QtCore import Qt, pyqtSignal
+import sys
 from PyQt6.QtCore import *
 from PyQt6.QtWidgets import *
 from PyQt6.QtGui import *
@@ -66,6 +66,10 @@ class Board(QGroupBox):
         self.goWidgetSet = False
         self.goVbox = None
 
+        self.small = self.parent.smallFont
+        self.medium = self.parent.mediumFont
+        self.large = self.parent.largeFont
+
         self.startGame()
         self.show()
 
@@ -106,15 +110,20 @@ class Board(QGroupBox):
     def drawGameOver(self, painter):
         # AlignHCenter --> 0x0004
         # AlignVCenter --> 0x0080
+        painter.setFont(self.large)
         center = 0x0004 | 0x0080
         gameOverTxt = "GAME OVER"
-        gameOverRect = QRect(QPoint(150, 200), QSize(350, 100))
+        gameOverRect = QRect(QPoint(125, 200), QSize(400, 100))
         painter.drawText(gameOverRect, center, gameOverTxt)
+        #
+        painter.setFont(self.medium)
         scoreTxt = "FINAL SCORE:\n{s}".format(s=str(self.score))
-        scoreRect = QRect(QPoint(150, 350), QSize(350, 100))
+        scoreRect = QRect(QPoint(125, 350), QSize(400, 100))
         painter.drawText(scoreRect, center, scoreTxt)
-        retryTxt = "Press 'r' or click START to try again!"
-        retryRect = QRect(QPoint(150, 450), QSize(350, 100))
+        #
+        painter.setFont(self.small)
+        retryTxt = "Press 'r' or click \nSTART to try again!"
+        retryRect = QRect(QPoint(100, 500), QSize(450, 100))
         painter.drawText(retryRect, center, retryTxt)
 
     def drawBoard(self, painter):
