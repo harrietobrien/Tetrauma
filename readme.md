@@ -1,2 +1,2 @@
 
-![](https://github.com/Tetrauma/tetris.gif)
+![](https://github.com/harrietobrien/Tetrauma/blob/main/tetris.gif)
