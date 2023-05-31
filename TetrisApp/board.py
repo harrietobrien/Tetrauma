@@ -2,12 +2,11 @@ import random
 import sys
 from PyQt6.QtCore import Qt, QBasicTimer, QSize, QSizeF, \
     QRect, QRectF, QPointF, QPoint, pyqtSignal, pyqtSlot
-from PyQt6.QtWidgets import QGroupBox
+from PyQt6.QtWidgets import QGroupBox, QFrame
 from PyQt6.QtGui import QColor, QPainter, QPainterPath, QPen, \
     QBrush, QPolygonF, QPaintEvent, QKeyEvent, QMouseEvent
 from color_schemes import ColorSchemes
 from tetromino import Tetromino
-from util import BKGDCell
 
 
 class Board(QGroupBox):
@@ -112,9 +111,9 @@ class Board(QGroupBox):
     def drawGameOver(self, painter):
         # AlignHCenter --> 0x0004
         # AlignVCenter --> 0x0080
+        center = 0x0004 | 0x0080
         painter.setFont(self.large)
         painter.setPen(QColor("#FFFFFF"))
-        center = 0x0004 | 0x0080
         gameOverTxt = "GAME OVER"
         gameOverRect = QRect(QPoint(125, 200), QSize(400, 100))
         painter.drawText(gameOverRect, center, gameOverTxt)
@@ -154,43 +153,61 @@ class Board(QGroupBox):
                 self.drawGameOver(painter)
             self.update()
 
-    def getCellBounds(self, row, col):
-        x0 = self.margin + col * self.cellSize
-        x1 = self.margin + (col + 1) * self.cellSize
-        y0 = self.margin + row * self.cellSize
-        y1 = self.margin + (row + 1) * self.cellSize
+    def getCellBounds(self, row, col, cellSize=None):
+        if not cellSize:
+            cellSize = self.cellSize
+        x0 = self.margin + col * cellSize
+        x1 = self.margin + (col + 1) * cellSize
+        y0 = self.margin + row * cellSize
+        y1 = self.margin + (row + 1) * cellSize
         return x0, x1, y0, y1
 
     def drawBackground(self, painter, width=None, height=None, start=None):
+        # ptSize = 3
         if not width and not height:
             width = self.width
             height = self.height
             start = QPointF(50, 50)
+            # ptSize = 5
         path = QPainterPath()
         size = QSizeF(width, height)
         rect = QRectF(start, size)
         path.addRoundedRect(rect, 20, 20)
         color = QColor(151, 217, 0)
         color.setAlpha(59)
-        pen = QPen(QColor("#333333"), 5)
-        painter.setPen(pen)
+        # pen = QPen(QColor("#FFFFFF"), ptSize)
+        # painter.setPen(pen)
         painter.fillPath(path, color)
-        painter.drawPath(path)
+        # painter.drawPath(path)
 
     def drawCell(self, painter, row, col, color, piece=None):
+        types = list('IJLOSTZ')
+        xys = dict()
+        x, y = 50, 100
+        for i in types:
+            xys[i] = x, y
+            if i == "I":
+                y += 75
+            else:
+                y += 100
+        cellSize = self.cellSize
+        (x0, x1, y0, y1) = self.getCellBounds(row, col)
         if piece == "next":
             x, y = 80, 650
         elif piece == "hold" or piece == "outline":
             x, y = 340, 650
+        elif piece in types:
+            # piece type specified for stat panel
+            x, y = xys[piece]
+            cellSize /= 1.5
+            (x0, x1, y0, y1) = self.getCellBounds(row, col, cellSize=cellSize)
         else:
             assert not piece
             x, y = 50, 50
-        (x0, x1, y0, y1) = self.getCellBounds(row, col)
         cellColor = QColor(color)
-        topLeft = QPoint(x0 + x, y0 + y)
+        topLeft = QPointF(x0 + x, y0 + y)
         # bottomRight = QPoint(x1, y1)
-        cellSize = QSize(self.cellSize, self.cellSize)
-        cell = QRect(topLeft, cellSize)
+        cell = QRectF(topLeft, QSizeF(cellSize, cellSize))
         painter.fillRect(cell, cellColor)
 
     def getInnerCellOffset(self):
@@ -220,10 +237,26 @@ class Board(QGroupBox):
         painter.fillPath(path, brush)
 
     def drawPiecePart(self, painter, row, col, color, piece=None):
+        types = list('IJLOSTZ')
+        xys = dict()
+        x, y = 50, 100
+        for i in types:
+            xys[i] = x, y
+            if i == "I":
+                y += 75
+            else:
+                y += 100
+        cellSize = self.cellSize
+        (x0, x1, y0, y1) = self.getCellBounds(row, col)
         if piece == "next":
             x, y = 80, 650
         elif piece == "hold":
             x, y = 340, 650
+        elif piece in types:
+            # type specified for stat panel
+            x, y = xys[piece]
+            cellSize /= 1.5
+            (x0, x1, y0, y1) = self.getCellBounds(row, col, cellSize=cellSize)
         else:
             assert not piece
             x, y = 50, 50
@@ -231,10 +264,9 @@ class Board(QGroupBox):
         cs = Board.SCHEMES
         tint = cs.getTint(hue, stepPercent=15)
         shade = cs.getShade(hue, stepPercent=15)
-        (x0, x1, y0, y1) = self.getCellBounds(row, col)
         tlCell = QPointF(x0 + x, y0 + y)
-        trCell = QPointF(x0 + x + self.cellSize, y0 + y)
-        brCell = QPointF(x1 + x - self.cellSize, y1 + y)
+        trCell = QPointF(x0 + x + cellSize, y0 + y)
+        brCell = QPointF(x1 + x - cellSize, y1 + y)
         blCell = QPointF(x1 + x, y1 + y)
         self.drawTriangle(painter, tlCell, trCell, brCell, blCell, shade=shade)
         self.drawTriangle(painter, tlCell, trCell, brCell, blCell, tint=tint)

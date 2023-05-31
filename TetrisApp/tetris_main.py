@@ -1,11 +1,12 @@
 import sys
-from PyQt6.QtCore import pyqtSignal, pyqtSlot
+from PyQt6.QtCore import Qt, pyqtSignal, pyqtSlot
 from PyQt6.QtWidgets import QApplication, QWidget, QMainWindow, QHBoxLayout
 from PyQt6.QtGui import QFont, QColor, QPalette, QKeyEvent, QPaintEvent, QMouseEvent
-from PyQt6.QtWidgets import QApplication, QWidget, QVBoxLayout
+from PyQt6.QtWidgets import QApplication, QWidget, QVBoxLayout, QDockWidget
 from PyQt6.QtWebEngineWidgets import QWebEngineView
 from board import Board
 from server import Server
+from stat_panel import StatPanel
 from ctrl_panel import CtrlPanel
 
 
@@ -37,6 +38,9 @@ class RunTetris(QMainWindow):
         self.startServer()
 
     def initGUI(self):
+        # dock = QDockWidget()
+        self.statPanel = StatPanel(self)
+        # statistics signal
         self.board = Board(self)
         self.board.scoreSignal[int].connect(self.currentScore)
         self.board.rowSignal[int].connect(self.currentRowsRmv)
@@ -45,11 +49,12 @@ class RunTetris(QMainWindow):
         self.ctrlPanel.pauseRTSignal[bool].connect(self.pauseBoard)
         # board components
         hbox = QHBoxLayout()
-        layout = QWidget()
-        hbox.addWidget(self.board)
+        mainFrame = QWidget()
         hbox.addWidget(self.ctrlPanel)
-        layout.setLayout(hbox)
-        self.setCentralWidget(layout)
+        hbox.addWidget(self.board)
+        hbox.addWidget(self.statPanel)
+        mainFrame.setLayout(hbox)
+        self.setCentralWidget(mainFrame)
         self.key_pressed.connect(self.board.onKeyPressEvent)
         blueGreen = QColor(9, 183, 152)
         self.setAutoFillBackground(True)
@@ -57,6 +62,7 @@ class RunTetris(QMainWindow):
         palette.setColor(QPalette.ColorRole.Window, QColor(blueGreen))
         self.setPalette(palette)
         self.setGeometry(0, 0, 1000, 1000)
+
         self.setWindowTitle('Tetrauma')
         self.show()
 

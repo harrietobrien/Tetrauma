@@ -1,6 +1,6 @@
 from PyQt6.QtCore import Qt, QRectF, QPointF, pyqtSignal, pyqtSlot
 from PyQt6.QtGui import QFont, QMovie, QPainterPath, QRegion, QPainter, QColor, QPen
-from PyQt6.QtWidgets import QGroupBox, QVBoxLayout, QLabel, \
+from PyQt6.QtWidgets import QDockWidget, QFrame, QGroupBox, QVBoxLayout, QLabel, \
     QGraphicsDropShadowEffect, QHBoxLayout, QPushButton, QWidget
 from util import RoundedWidget
 
@@ -20,7 +20,10 @@ class CtrlPanel(QGroupBox):
         self.runParent.board.scoreSignal[int].connect(self.getRowsCleared)
         self.width, self.height = self.runParent.width, self.runParent.height
         self.buttons = dict.fromkeys(['START', 'PAUSE', 'LOGIN'], None)
-        self.setFixedSize(self.width + 100, self.height + 100)
+
+        # frame settings
+        # self.setFrameStyle(QFrame.Panel | QFrame.Sunken)
+        self.setFixedSize(self.width + 50, self.height + 100)
 
         self.small = self.runParent.smallFont
         self.medium = self.runParent.mediumFont
@@ -83,7 +86,7 @@ class CtrlPanel(QGroupBox):
     def getRowsCleared(self, rows):
         self.rows = str(rows)
         if self.rowsLabel:
-            txt = "ROWS REMOVED: {rows}".format(rows=self.rows)
+            txt = "ROWS CLEARED: {rows}".format(rows=self.rows)
             self.rowsLabel.setText(txt)
         self.update()
 
@@ -114,13 +117,13 @@ class CtrlPanel(QGroupBox):
         self.drawPreviewBox(painter)
 
     def drawPreviewBox(self, painter):
-        origin = QPointF(45, 600)
+        origin = QPointF(20, 600)
         self.runParent.board.drawBackground(painter, width=560, height=250, start=origin)
         painter.setPen(QColor("#FFFFFF"))
-        painter.drawText(90, 650, "NEXT PIECE")
-        painter.drawText(350, 650, "HOLD QUEUE")
+        painter.drawText(65, 650, "NEXT PIECE")
+        painter.drawText(325, 650, "HOLD QUEUE")
         painter.setFont(QFont('Arcade', 25))
-        painter.drawText(65, 830, "Press 'h' to hold and release a falling piece!")
+        painter.drawText(40, 830, "Press 'h' to hold and release a falling piece!")
         if not self.gameOver:
             self.drawNextPiece(painter)
             self.drawHeldPiece(painter)
@@ -199,7 +202,7 @@ class CtrlPanel(QGroupBox):
         hbox2.setAlignment(self.hcenter)
         self.scoreLabel = QLabel("SCORE: {score}".format(score=self.score))
         self.scoreLabel.setFont(self.small)
-        self.rowsLabel = QLabel("ROWS REMOVED: {rows}".format(rows=self.rows))
+        self.rowsLabel = QLabel("ROWS CLEARED: {rows}".format(rows=self.rows))
         self.rowsLabel.setFont(self.small)
         vbox.addWidget(self.scoreLabel, alignment=self.hcenter)
         vbox.addWidget(self.rowsLabel, alignment=self.hcenter)

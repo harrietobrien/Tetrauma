@@ -55,6 +55,10 @@ class Tetromino(object):
             def getPiece() -> list[list[bool]]:
                 return [[True for _ in range(4)]]
 
+            @staticmethod
+            def getPieceType() -> str:
+                return "I"
+
             def __eq__(self, other):
                 if isinstance(other, Ipiece):
                     return True
@@ -89,6 +93,10 @@ class Tetromino(object):
             def getPiece() -> list[list[bool]]:
                 return [[True, False, False],
                         [True, True, True]]
+
+            @staticmethod
+            def getPieceType() -> str:
+                return "J"
 
             def __eq__(self, other):
                 if isinstance(other, Jpiece):
@@ -125,6 +133,10 @@ class Tetromino(object):
                 return [[False, False, True],
                         [True, True, True]]
 
+            @staticmethod
+            def getPieceType() -> str:
+                return "L"
+
             def __eq__(self, other):
                 if isinstance(other, Lpiece):
                     return True
@@ -159,6 +171,10 @@ class Tetromino(object):
             def getPiece() -> list[list[bool]]:
                 return [[True, True],
                         [True, True]]
+
+            @staticmethod
+            def getPieceType() -> str:
+                return "O"
 
             def __eq__(self, other):
                 if isinstance(other, Opiece):
@@ -195,6 +211,10 @@ class Tetromino(object):
                 return [[False, True, True],
                         [True, True, False]]
 
+            @staticmethod
+            def getPieceType() -> str:
+                return "S"
+
             def __eq__(self, other):
                 if isinstance(other, Opiece):
                     return True
@@ -230,6 +250,10 @@ class Tetromino(object):
                 return [[False, True, False],
                         [True, True, True]]
 
+            @staticmethod
+            def getPieceType() -> str:
+                return "T"
+
             def __eq__(self, other):
                 if isinstance(other, Tpiece):
                     return True
@@ -264,6 +288,10 @@ class Tetromino(object):
             def getPiece() -> list[list[bool]]:
                 return [[True, True, False],
                         [False, True, True]]
+
+            @staticmethod
+            def getPieceType() -> str:
+                return "Z"
 
             def __eq__(self, other):
                 if isinstance(other, Zpiece):
