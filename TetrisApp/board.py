@@ -1,8 +1,10 @@
 import random
 import sys
-from PyQt6.QtCore import *
-from PyQt6.QtWidgets import *
-from PyQt6.QtGui import *
+from PyQt6.QtCore import Qt, QBasicTimer, QSize, QSizeF, \
+    QRect, QRectF, QPointF, QPoint, pyqtSignal, pyqtSlot
+from PyQt6.QtWidgets import QGroupBox
+from PyQt6.QtGui import QColor, QPainter, QPainterPath, QPen, \
+    QBrush, QPolygonF, QPaintEvent, QKeyEvent, QMouseEvent
 from color_schemes import ColorSchemes
 from tetromino import Tetromino
 from util import BKGDCell
@@ -27,7 +29,7 @@ class Board(QGroupBox):
         self.rows, self.cols = self.parent.rows, self.parent.cols
         self.cellSize = self.parent.cellSize
         self.margin = self.parent.margin
-        # signal stuff
+        # (re)start and pause signals
         self.parent.startBoardSignal[bool].connect(self.startGame)
         self.parent.pauseBoardSignal[bool].connect(self.pauseGame)
 
@@ -201,12 +203,12 @@ class Board(QGroupBox):
         if tint:
             color = tint
             brushStyle = Qt.BrushStyle.SolidPattern
-            triangle << bl << br << tr
+            triangle = triangle << bl << br << tr
         else:
             assert (shade and not tint)
             color = shade
             brushStyle = Qt.BrushStyle.SolidPattern
-            triangle << bl << tl << tr
+            triangle = triangle << bl << tl << tr
         path = QPainterPath()
         pen = QPen(QColor(color))
         painter.setPen(pen)
@@ -261,12 +263,18 @@ class Board(QGroupBox):
                 return self.scheme[k]
         return "NotFound"
 
+    def getRandomIndex(self):
+        seed = random.randrange(sys.maxsize)
+        ranObj = random.Random(seed)
+        return ranObj.randint(0, self.n - 1)
+
     def newFallingPiece(self):
-        randomIndex = random.randint(0, self.n - 1)
+        randomIndex = self.getRandomIndex()
         # Set values to randomly indexed elements
         if not self.nextFallingPieceObj:
             self.nextFallingPieceObj = self.fallingPieceStrux[randomIndex]
-            self.currFallingPieceObj = self.fallingPieceStrux[randomIndex]
+            anotherRandomIndex = self.getRandomIndex()
+            self.currFallingPieceObj = self.fallingPieceStrux[anotherRandomIndex]
         else:
             self.currFallingPieceObj = self.nextFallingPieceObj
             self.nextFallingPieceObj = self.fallingPieceStrux[randomIndex]
@@ -401,7 +409,6 @@ class Board(QGroupBox):
             self.currHoldPieceObj = None
             self.getHoldSignal.emit(None)
             self.placeHoldSignal.emit(False)
-            # self.newFallingPiece()
 
     @pyqtSlot(QKeyEvent)
     def onKeyPressEvent(self, event: QKeyEvent) -> None:

@@ -11,8 +11,6 @@ class CtrlPanel(QGroupBox):
 
     def __init__(self, runTetrisParent) -> None:
         super(CtrlPanel, self).__init__(runTetrisParent)
-        self.rows, self.score = 0, 0
-        self.user, self.status = "GUEST", "PLAYING"
         self.runParent = runTetrisParent
         self.runParent.board.gameStatusSignal[bool].connect(self.gameStatus)
         self.runParent.board.nextSignal[object].connect(self.getNext)
@@ -28,6 +26,8 @@ class CtrlPanel(QGroupBox):
         self.medium = self.runParent.mediumFont
         self.large = self.runParent.largeFont
 
+        self.rows, self.score = 0, 0
+        self.user, self.status = "GUEST", "PLAYING"
         self.paused, self.started = False, False
 
         self.userLabel, self.scoreLabel, self.rowsLabel = None, None, None
@@ -119,6 +119,8 @@ class CtrlPanel(QGroupBox):
         painter.setPen(QColor("#FFFFFF"))
         painter.drawText(90, 650, "NEXT PIECE")
         painter.drawText(350, 650, "HOLD QUEUE")
+        painter.setFont(QFont('Arcade', 25))
+        painter.drawText(65, 830, "Press 'h' to hold and release a falling piece!")
         if not self.gameOver:
             self.drawNextPiece(painter)
             self.drawHeldPiece(painter)
@@ -157,7 +159,7 @@ class CtrlPanel(QGroupBox):
 
     @pyqtSlot()
     def buttonClicked(self):
-        # find sender in self.buttons
+        # Identify sender from self.buttons
         btnObjects = list(self.buttons.values())
         btnLabels = list(self.buttons.keys())
         i = btnObjects.index(self.sender())

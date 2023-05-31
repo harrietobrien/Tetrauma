@@ -1,7 +1,9 @@
 import sys
-from PyQt6.QtCore import *
-from PyQt6.QtWidgets import *
-from PyQt6.QtGui import *
+from PyQt6.QtCore import pyqtSignal, pyqtSlot
+from PyQt6.QtWidgets import QApplication, QWidget, QMainWindow, QHBoxLayout
+from PyQt6.QtGui import QFont, QColor, QPalette, QKeyEvent, QPaintEvent, QMouseEvent
+from PyQt6.QtWidgets import QApplication, QWidget, QVBoxLayout
+from PyQt6.QtWebEngineWidgets import QWebEngineView
 from board import Board
 from server import Server
 from ctrl_panel import CtrlPanel
