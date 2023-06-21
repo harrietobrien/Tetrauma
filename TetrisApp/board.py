@@ -16,6 +16,7 @@ class Board(QGroupBox):
     getHoldSignal = pyqtSignal(object)
     # signal to draw colored piece in queue
     placeHoldSignal = pyqtSignal(bool)
+    pieceCountSignal = pyqtSignal(object)
     scoreSignal = pyqtSignal(int)
     rowSignal = pyqtSignal(int)
     SCHEMES = ColorSchemes()
@@ -49,6 +50,8 @@ class Board(QGroupBox):
         self.colPosition = 0
         # Next falling piece for preview
         self.nextFallingPieceObj = None
+        self.pieceCounts = dict(zip(list('IJLOSTZ'), [0] * 7))
+        # create update piece count
 
         self.numRowsRemoved = 0
         self.started, self.paused = None, None
@@ -76,24 +79,20 @@ class Board(QGroupBox):
 
     def startGame(self):
         self.update()
-        self.toggleGameOverMsg()
         self.gameOver = False
-        self.goWidgetSet = False
         self.gameStatusSignal.emit(self.gameOver)
-        self.currentBoard = self.buildBoard(color=self.bgColor)
-        self.started = True
+        self.pieceCounts = dict(zip(list('IJLOSTZ'), [0] * 7))
+        self.pieceCountSignal.emit(self.pieceCounts)
         self.score = 0
         self.numRowsRemoved = 0
+        self.scoreSignal.emit(self.score)
+        self.rowSignal.emit(self.numRowsRemoved)
+        #self.update()
+        self.currentBoard = self.buildBoard(color=self.bgColor)
+        self.started = True
         # generate/select first falling piece
         self.newFallingPiece()
         self.timer.start(self.timerDelay, self)
-
-    def toggleGameOverMsg(self):
-        if self.goVbox is not None:
-            while self.goVbox.count():
-                item = self.goVbox.takeAt(0)
-                widget = item.widget()
-                widget.setHidden(not widget.isHidden())
 
     def pauseGame(self, paused: bool):
         self.paused = paused
@@ -163,22 +162,17 @@ class Board(QGroupBox):
         return x0, x1, y0, y1
 
     def drawBackground(self, painter, width=None, height=None, start=None):
-        # ptSize = 3
         if not width and not height:
             width = self.width
             height = self.height
             start = QPointF(50, 50)
-            # ptSize = 5
         path = QPainterPath()
         size = QSizeF(width, height)
         rect = QRectF(start, size)
         path.addRoundedRect(rect, 20, 20)
         color = QColor(151, 217, 0)
         color.setAlpha(59)
-        # pen = QPen(QColor("#FFFFFF"), ptSize)
-        # painter.setPen(pen)
         painter.fillPath(path, color)
-        # painter.drawPath(path)
 
     def drawCell(self, painter, row, col, color, piece=None):
         types = list('IJLOSTZ')
@@ -187,9 +181,9 @@ class Board(QGroupBox):
         for i in types:
             xys[i] = x, y
             if i == "I":
-                y += 75
+                y += 85
             else:
-                y += 100
+                y += 110
         cellSize = self.cellSize
         (x0, x1, y0, y1) = self.getCellBounds(row, col)
         if piece == "next":
@@ -243,9 +237,9 @@ class Board(QGroupBox):
         for i in types:
             xys[i] = x, y
             if i == "I":
-                y += 75
+                y += 85
             else:
-                y += 100
+                y += 110
         cellSize = self.cellSize
         (x0, x1, y0, y1) = self.getCellBounds(row, col)
         if piece == "next":
@@ -393,6 +387,10 @@ class Board(QGroupBox):
                     self.currentBoard[self.rowPosition][self.colPosition] = hue
                     self.update()
         self.removeFullRows()
+        # update piece count dictionary
+        ptype = self.currFallingPieceObj.getPieceType()
+        self.pieceCounts[ptype] += 1
+        self.pieceCountSignal.emit(self.pieceCounts)
         if self.currHoldPieceObj:
             self.placeHold = True
             self.placeHoldSignal.emit(self.placeHold)
@@ -488,6 +486,8 @@ class Board(QGroupBox):
                 if not self.fallingPieceIsLegal():
                     self.gameOver = not self.gameOver
                     self.gameStatusSignal.emit(self.gameOver)
+                    self.pieceCounts = dict(zip(list('IJLOSTZ'), [0] * 7))
+                    self.pieceCountSignal.emit(self.pieceCounts)
         else:
             super(Board, self).timerEvent(event)
 

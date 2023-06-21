@@ -7,28 +7,28 @@ from util import RoundedWidget
 
 
 class StatPanel(QGroupBox):
-    # statSignal = pyqtSignal(object)
 
     def __init__(self, runTetrisParent) -> None:
         super(StatPanel, self).__init__(runTetrisParent)
         self.runParent = runTetrisParent
+        self.pieceCounts = dict(zip(list('IJLOSTZ'), [0] * 7))
         self.width, self.height = self.runParent.width, self.runParent.height
         self.setContentsMargins(25, 25, 25, 25)
         self.setFixedSize(self.width - 200, self.height + 100)
-
+        self.runParent.board.pieceCountSignal[object].connect(self.setPieceCounts)
+        self.runParent.board.gameStatusSignal[bool].connect(self.getGameStatus)
         self.small = self.runParent.smallFont
         self.medium = self.runParent.mediumFont
         self.large = self.runParent.largeFont
 
-        # self.statInit()
+    def setPieceCounts(self, pieceCounts: dict):
+        self.pieceCounts = pieceCounts
+        self.update()
 
-    def statInit(self):
-        vbox = QVBoxLayout()
-        ctrlBox = self.addRoundedWidget(300, 800)
-        print(ctrlBox)
-        vbox.addWidget(ctrlBox)
-        vbox.addStretch()
-        self.setLayout(vbox)
+    def getGameStatus(self, gameOver: bool):
+        if gameOver:
+            self.pieceCounts = dict(zip(list('IJLOSTZ'), [0] * 7))
+            self.update()
 
     def paintEvent(self, event):
         super().paintEvent(event)
@@ -42,8 +42,19 @@ class StatPanel(QGroupBox):
         painter.setPen(QColor("#FFFFFF"))
         painter.setFont(self.medium)
         painter.drawText(50, 100, "STATISTICS")
+        # self.drawPieces(painter)
+        self.drawPieceCounts(painter)
+
+    def drawPieceCounts(self, painter):
+        painter.setPen(QColor("#FFFFFF"))
         painter.setFont(QFont('Arcade', 25))
-        self.drawPieces(painter)
+        x, y = 250, 150
+        for i in self.pieceCounts:
+            painter.drawText(x, y, str(self.pieceCounts[i]))
+            if i == "I":
+                y += 90
+            else:
+                y += 115
 
     def drawPieces(self, painter):
         pieces: list[object] = self.runParent.board.fallingPieceStrux
@@ -63,16 +74,3 @@ class StatPanel(QGroupBox):
     def mouseReleaseEvent(self, event: QtGui.QMouseEvent) -> None:
         super().mouseReleaseEvent(event)
 
-    @staticmethod
-    def addRoundedWidget(width, height):
-        box = QWidget()
-        box.setAutoFillBackground(True)
-        box.setFixedSize(width, height)
-        path = QPainterPath()
-        radius = 20.0
-        path.addRoundedRect(QRectF(box.rect()), radius, radius)
-        mask = QRegion(path.toFillPolygon().toPolygon())
-        box.setMask(mask)
-        box.setObjectName("outer-box")
-        box.setStyleSheet(open('styles.qss').read())
-        return box

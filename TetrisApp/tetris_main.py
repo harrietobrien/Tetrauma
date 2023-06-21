@@ -3,7 +3,7 @@ from PyQt6.QtCore import Qt, pyqtSignal, pyqtSlot
 from PyQt6.QtWidgets import QApplication, QWidget, QMainWindow, QHBoxLayout
 from PyQt6.QtGui import QFont, QColor, QPalette, QKeyEvent, QPaintEvent, QMouseEvent
 from PyQt6.QtWidgets import QApplication, QWidget, QVBoxLayout, QDockWidget
-from PyQt6.QtWebEngineWidgets import QWebEngineView
+# from PyQt6.QtWebEngineWidgets import QWebEngineView
 from board import Board
 from server import Server
 from stat_panel import StatPanel
@@ -38,15 +38,13 @@ class RunTetris(QMainWindow):
         self.startServer()
 
     def initGUI(self):
-        # dock = QDockWidget()
-        self.statPanel = StatPanel(self)
-        # statistics signal
         self.board = Board(self)
         self.board.scoreSignal[int].connect(self.currentScore)
         self.board.rowSignal[int].connect(self.currentRowsRmv)
         self.ctrlPanel = CtrlPanel(self)
         self.ctrlPanel.startRTSignal[bool].connect(self.startBoard)
         self.ctrlPanel.pauseRTSignal[bool].connect(self.pauseBoard)
+        self.statPanel = StatPanel(self)
         # board components
         hbox = QHBoxLayout()
         mainFrame = QWidget()
@@ -79,11 +77,9 @@ class RunTetris(QMainWindow):
 
     def currentScore(self, score):
         self.scoreSignal.emit(score)
-        # print("Score: ", score)
 
     def currentRowsRmv(self, rows):
         self.rowSignal.emit(rows)
-        # print("Rows: ", rows)
 
     def keyPressEvent(self, event: QKeyEvent) -> None:
         self.key_pressed.emit(event)
