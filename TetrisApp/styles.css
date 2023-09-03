@@ -1,0 +1,13 @@
+QPushButton#button {
+    border-radius: 20px;
+    background: rgba(151, 217, 0, 0.23);
+    border: 5px solid #333333;
+}
+QWidget#outer-box {
+    border-radius: 20px;
+    background: rgba(151, 217, 0, 0.23);
+    border: 5px solid #333333;
+}
+QLabel#text {
+    padding: 10px;
+}

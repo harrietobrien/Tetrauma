@@ -1,0 +1,8 @@
+/.idea/
+/fastAPI/.idea/
+/fastAPI/venv/
+/TetrisApp/.idea/
+/TetrisApp/__pycache__
+/TetrisApp/venv/
+/TetrisApp/.DS_Store
+.DS_Store
